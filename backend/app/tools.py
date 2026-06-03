@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import defaultdict
 from decimal import Decimal
 from uuid import uuid4
@@ -24,7 +25,9 @@ def money(value) -> float:
 
 
 def normalize(text: str) -> str:
-    return text.casefold().replace("ı", "i").replace("İ", "i")
+    text = text.casefold().replace("ı", "i")
+    text = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
 def product_payload(product: Product, evidence: list[str]) -> dict:
@@ -89,7 +92,6 @@ def search_products(db: Session, req: SearchProductsRequest) -> ToolResult:
         score, evidence = _product_evidence(product, req.query, req.filters.required_tags)
         if score > 0 or not req.query:
             if product.stock_qty <= 0:
-                score -= 20
                 evidence.append("stock_qty:0 erişilemeyen eşleşme")
             matches.append((score, product, evidence or ["structured_filter"]))
     matches.sort(key=lambda x: (x[0], x[1].stock_qty > 0, -money(x[1].price_try)), reverse=True)
@@ -109,7 +111,7 @@ def get_knowledge_entries(db: Session, req: KnowledgeRequest) -> ToolResult:
         score = 10 if req.topic and entry.topic == req.topic else 0
         score += sum(1 for term in re.split(r"\W+", q) if term and term in text)
         ranked.append((score, entry))
-    ranked.sort(key=lambda x: (x[0], not x[1].knowledge_id.endswith("-SUP")), reverse=True)
+    ranked.sort(key=lambda x: (x[1].topic == req.topic, not x[1].knowledge_id.endswith("-SUP"), x[0]), reverse=True)
     selected = [e for _, e in ranked[: req.limit]]
     data = [
         {
@@ -151,7 +153,7 @@ def get_quote(db: Session, quote_id: str) -> ToolResult:
     quote = db.get(Quote, quote_id)
     if not quote:
         raise ValueError(f"Teklif bulunamadı: {quote_id}")
-    items = list(quote.items)
+    items = list(db.scalars(select(QuoteItem).where(QuoteItem.quote_id == quote.quote_id)).all())
     active_items = [i for i in items if i.status == "active"]
     lines = []
     subtotal = Decimal("0")
@@ -219,7 +221,13 @@ def add_to_quote(db: Session, req: AddToQuoteRequest) -> ToolResult:
     if not quote or not product:
         raise ValueError("Teklif veya ürün bulunamadı.")
     _ensure_add_allowed(db, quote, product, req.allow_wait)
-    active = next((i for i in quote.items if i.product_id == product.product_id and i.status == "active"), None)
+    active = db.scalar(
+        select(QuoteItem).where(
+            QuoteItem.quote_id == quote.quote_id,
+            QuoteItem.product_id == product.product_id,
+            QuoteItem.status == "active",
+        )
+    )
     before_qty = active.quantity if active else 0
     if active:
         active.quantity += req.quantity
@@ -240,14 +248,23 @@ def add_to_quote(db: Session, req: AddToQuoteRequest) -> ToolResult:
     result = {"quote_id": quote.quote_id, "product_id": product.product_id, "quantity": req.quantity, "quote_delta": delta}
     db.add(IdempotencyKey(key=req.idempotency_key, tool_name="add_to_quote", quote_id=quote.quote_id, result_json=result))
     db.commit()
-    return ToolResult(data=result, source_ids=[product.product_id], quote_delta=delta)
+    source_ids = [product.product_id]
+    if before_qty > 0:
+        source_ids.append("KNE-IDEMP-001")
+    return ToolResult(data=result, source_ids=source_ids, quote_delta=delta)
 
 
 def update_quote_item(db: Session, req: UpdateQuoteItemRequest) -> ToolResult:
     quote = db.get(Quote, req.quote_id)
     if not quote:
         raise ValueError("Teklif bulunamadı.")
-    item = next((i for i in quote.items if i.product_id == req.product_id and i.status == "active"), None)
+    item = db.scalar(
+        select(QuoteItem).where(
+            QuoteItem.quote_id == req.quote_id,
+            QuoteItem.product_id == req.product_id,
+            QuoteItem.status == "active",
+        )
+    )
     if not item:
         raise ValueError("Aktif teklif kalemi bulunamadı.")
     before_qty = item.quantity
@@ -274,13 +291,25 @@ def replace_with_alternative(db: Session, req: ReplaceWithAlternativeRequest) ->
         raise ValueError("Alternatif ürün stokta değil.")
     if req.max_price_try is not None and money(to_product.price_try) > req.max_price_try:
         raise ValueError("Alternatif ürün fiyat limitini aşıyor.")
-    old = next((i for i in quote.items if i.product_id == from_product.product_id and i.status == "active"), None)
+    old = db.scalar(
+        select(QuoteItem).where(
+            QuoteItem.quote_id == quote.quote_id,
+            QuoteItem.product_id == from_product.product_id,
+            QuoteItem.status == "active",
+        )
+    )
     if not old:
         raise ValueError("Değiştirilecek aktif kalem bulunamadı.")
     qty = req.quantity or old.quantity
     old.status = "replaced"
     old.replaced_by_product_id = to_product.product_id
-    existing_target = next((i for i in quote.items if i.product_id == to_product.product_id and i.status == "active"), None)
+    existing_target = db.scalar(
+        select(QuoteItem).where(
+            QuoteItem.quote_id == quote.quote_id,
+            QuoteItem.product_id == to_product.product_id,
+            QuoteItem.status == "active",
+        )
+    )
     if existing_target:
         existing_target.quantity += qty
     else:

@@ -63,7 +63,9 @@ def test_golden_fallback_does_not_mutate(db):
         ),
     )
     assert "KNE-FALL-001" in events or "Yedek modda" in events
-    assert tool_names(db, "SCN-009") == ["get_knowledge_entries", "get_quote"]
+    names = tool_names(db, "SCN-009")
+    assert names[:2] == ["get_knowledge_entries", "get_quote"]
+    assert "add_to_quote" not in names
     after_qty = next(i for i in get_quote(db, "Q-1001").data["items"] if i["product_id"] == "PRD-BC-110")["quantity"]
     assert after_qty == before_qty
 

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://tbr:tbr@postgres:5432/tbr"
     dataset_dir: Path = Path(__file__).resolve().parents[2] / "the_blue_red_candidate_case_dataset"
     auto_seed: bool = True
+    llm_enabled: bool = False
     openai_api_key: str = ""
 
     class Config:
@@ -18,4 +19,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

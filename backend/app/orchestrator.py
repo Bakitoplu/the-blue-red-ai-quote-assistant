@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections.abc import Iterator
 from uuid import uuid4
 
@@ -19,7 +20,7 @@ from .schemas import (
     SearchProductsRequest,
     UpdateQuoteItemRequest,
 )
-from .tools import add_to_quote, get_knowledge_entries, get_quote, replace_with_alternative, search_products
+from .tools import add_to_quote, get_knowledge_entries, get_quote, replace_with_alternative, search_products, update_quote_item
 
 
 def sse(event: str, data: dict) -> str:
@@ -27,7 +28,9 @@ def sse(event: str, data: dict) -> str:
 
 
 def _norm(text: str) -> str:
-    return text.casefold().replace("ı", "i").replace("İ", "i")
+    text = text.casefold().replace("ı", "i")
+    text = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
 def _price_limit(text: str) -> float | None:
@@ -40,7 +43,7 @@ def _price_limit(text: str) -> float | None:
 def _quantity(text: str, default: int = 1) -> int:
     words = {"bir": 1, "iki": 2, "üç": 3, "uc": 3, "dört": 4, "dort": 4, "beş": 5, "bes": 5}
     ntext = _norm(text)
-    m = re.search(r"(\d+)\s*(?:adet|tane|lokasyon)", ntext)
+    m = re.search(r"(\d+)\s*(?:adet|adede|tane|lokasyon)", ntext)
     if m:
         return int(m.group(1))
     for word, value in words.items():
@@ -116,6 +119,27 @@ def _log_tool(db: Session, session_id: str, message_id: str, sequence_no: int, t
     return log
 
 
+def _log_tool_error(db: Session, session_id: str, message_id: str, sequence_no: int, tool_name: str, input_json: dict, quote_id: str | None, error: Exception):
+    log = ToolCallLog(
+        session_id=session_id,
+        message_id=message_id,
+        sequence_no=sequence_no,
+        tool_name=tool_name,
+        input_json=input_json,
+        output_json={},
+        success=False,
+        error=str(error),
+        source_ids=[],
+        quote_id=quote_id,
+        quote_delta={},
+    )
+    db.add(log)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+
 class ToolRunner:
     def __init__(self, db: Session, session_id: str, message_id: str, quote_id: str):
         self.db = db
@@ -129,20 +153,25 @@ class ToolRunner:
     def run(self, name: str, payload: dict):
         self.sequence += 1
         self.events.append(sse("tool_call_start", {"tool_name": name, "input": payload, "sequence_no": self.sequence}))
-        if name == "search_products":
-            result = search_products(self.db, SearchProductsRequest(**payload))
-        elif name == "get_knowledge_entries":
-            result = get_knowledge_entries(self.db, KnowledgeRequest(**payload))
-        elif name == "get_quote":
-            result = get_quote(self.db, payload["quote_id"])
-        elif name == "add_to_quote":
-            result = add_to_quote(self.db, AddToQuoteRequest(**payload))
-        elif name == "update_quote_item":
-            result = update_quote_item(self.db, UpdateQuoteItemRequest(**payload))
-        elif name == "replace_with_alternative":
-            result = replace_with_alternative(self.db, ReplaceWithAlternativeRequest(**payload))
-        else:
-            raise ValueError(f"Bilinmeyen tool: {name}")
+        try:
+            if name == "search_products":
+                result = search_products(self.db, SearchProductsRequest(**payload))
+            elif name == "get_knowledge_entries":
+                result = get_knowledge_entries(self.db, KnowledgeRequest(**payload))
+            elif name == "get_quote":
+                result = get_quote(self.db, payload["quote_id"])
+            elif name == "add_to_quote":
+                result = add_to_quote(self.db, AddToQuoteRequest(**payload))
+            elif name == "update_quote_item":
+                result = update_quote_item(self.db, UpdateQuoteItemRequest(**payload))
+            elif name == "replace_with_alternative":
+                result = replace_with_alternative(self.db, ReplaceWithAlternativeRequest(**payload))
+            else:
+                raise ValueError(f"Bilinmeyen tool: {name}")
+        except Exception as exc:
+            _log_tool_error(self.db, self.session_id, self.message_id, self.sequence, name, payload, self.quote_id, exc)
+            self.events.append(sse("tool_call_result", {"tool_name": name, "success": False, "sequence_no": self.sequence, "error": str(exc)}))
+            raise
         _log_tool(self.db, self.session_id, self.message_id, self.sequence, name, payload, result, self.quote_id)
         self.sources.extend(result.source_ids)
         self.events.append(
@@ -164,8 +193,8 @@ def _replace_key(message_id: str, from_product_id: str, to_product_id: str) -> s
     return f"{message_id}:replace:{from_product_id}:{to_product_id}"
 
 
-def _compose_text(actions: list[str], sources: list[str], fallback: bool) -> str:
-    prefix = "Yedek modda kaynaklara göre: " if fallback else ""
+def _compose_text(actions: list[str], sources: list[str], fallback_note: bool) -> str:
+    prefix = "Yedek modda kaynaklara göre: " if fallback_note else ""
     source_text = ", ".join(dict.fromkeys(sources))
     return prefix + " ".join(actions) + (f" Kaynaklar: {source_text}." if source_text else "")
 
@@ -184,20 +213,14 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
     yield sse("message_start", {"session_id": session_id, "message_id": message_id})
 
     n = _norm(req.message)
-    fallback = not bool(get_settings().openai_api_key)
+    fallback_note = False
+    settings = get_settings()
+    llm_unavailable = (not settings.llm_enabled) or (not settings.openai_api_key)
     actions: list[str] = []
 
     try:
         topic = _topic(req.message)
-        if topic and (fallback or topic not in {"stock_rule"} or any(k in n for k in ["iade", "teslimat", "kurulum", "servis", "offline", "senkron", "indirim"])):
-            limit = 2 if topic in {"return_policy", "delivery_policy"} else 1
-            runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": topic, "limit": limit})
-
-        if fallback:
-            runner.run("get_knowledge_entries", {"query": "fallback", "locale": "tr", "topic": "fallback", "limit": 1})
-            runner.run("get_quote", {"quote_id": req.quote_id})
-            actions.append("Güvenli modda teklif bilgisi ve politika kaynakları gösterildi; emin olunmayan mutasyon yapılmadı.")
-        elif "redscan mini" in n or ("cep tipi" in n and "değiştir" not in n and "degistir" not in n):
+        if "redscan mini" in n or ("cep tipi" in n and "değiştir" not in n and "degistir" not in n):
             runner.run("search_products", {"query": "RedScan Mini", "locale": "tr", "filters": {"in_stock_only": False}, "limit": 3})
             runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "stock_rule", "limit": 1})
             actions.append("RedScan Mini stokta olmadığı için açık bekleme onayı olmadan teklife eklenmedi; stok kuralı kaynaklandı.")
@@ -236,6 +259,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             if "şube" in n or "sube" in n:
                 runner.run("search_products", {"query": "şube senkron", "locale": "tr", "filters": {"in_stock_only": True}, "limit": 3})
                 runner.run("add_to_quote", {"quote_id": req.quote_id, "product_id": "PRD-SW-530", "quantity": 1, "idempotency_key": _add_key(message_id, "PRD-SW-530"), "source_message_id": message_id})
+                runner.run("get_quote", {"quote_id": req.quote_id})
             actions.append("Uyumluluk kaynağına göre gerekli donanım/yazılım kalemleri teklife eklendi.")
         elif "ethernet" in n and ("çıkar" in n or "cikar" in n):
             runner.run("get_quote", {"quote_id": req.quote_id})
@@ -254,6 +278,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             runner.run("add_to_quote", {"quote_id": req.quote_id, "product_id": "PRD-BC-110-PLUS", "quantity": max(target - existing["quantity"], 1), "idempotency_key": _add_key(message_id, "PRD-BC-110-PLUS"), "source_message_id": message_id})
             if "indirim" in n:
                 runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "discount_policy", "limit": 1})
+                runner.run("get_quote", {"quote_id": req.quote_id})
             actions.append("BlueScan Air Plus miktarı tekrarsız şekilde güncellendi.")
         elif ("kablosuz" in n or "bluescan air" in n) and any(k in n for k in ["aynı", "ayni", "daha", "toplam"]):
             runner.run("get_quote", {"quote_id": req.quote_id})
@@ -285,6 +310,12 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             actions.append("Fiyat limitinin altındaki stoklu koruyucu kılıf teklife eklendi.")
         else:
             if topic:
+                limit = 2 if topic in {"return_policy", "delivery_policy"} else 1
+                runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": topic, "limit": limit})
+                if llm_unavailable and any(k in n for k in ["teklif", "hangi ürün", "hangi urun", "donanım", "donanim"]):
+                    runner.run("get_quote", {"quote_id": req.quote_id})
+                    runner.run("get_knowledge_entries", {"query": "fallback", "locale": "tr", "topic": "fallback", "limit": 1})
+                    fallback_note = True
                 actions.append("Kaynaklı politika cevabı üretildi; teklif üzerinde değişiklik yapılmadı.")
             else:
                 runner.run("get_quote", {"quote_id": req.quote_id})
@@ -292,7 +323,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
 
         for event in runner.events:
             yield event
-        answer = _compose_text(actions, runner.sources, fallback)
+        answer = _compose_text(actions, runner.sources, fallback_note)
         db.merge(ChatMessage(message_id=f"{message_id}-assistant", session_id=session_id, role="assistant", content=answer))
         db.commit()
         for chunk in re.findall(r".{1,80}(?:\s|$)", answer):
