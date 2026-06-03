@@ -1,20 +1,14 @@
 # AI Usage
 
-Bu proje Codex ile geliştirilmiştir.
+Bu projede AI desteği gereksinim çözümleme, uygulama planlama, boilerplate üretimi ve test taslaklarının hazırlanmasında kullanıldı.
 
-Kullanılan AI desteği:
+Nihai iş kuralları, tool contract davranışları, fiyat/stok/idempotency kararları ve doğrulama kapsamı geliştirici kontrolünden geçirildi. Üretilen kod backend testleriyle doğrulandı.
 
-- Case promptu, `tool_contracts.json`, `golden_test_scenarios.json` ve dataset dosyaları karşılaştırıldı.
-- Backend model, seed loader, tool fonksiyonları, deterministic chat router ve SSE event akışı üretildi.
-- Kritik iş kuralları için pytest testleri yazıldı.
-- React web admin ve Expo mobil istemci iskeleti üretildi.
-- README, Docker Compose ve bilinen sınırlamalar dokümante edildi.
+Gizli değer, API anahtarı veya kişisel credential paylaşılmadı. `.env` dosyası commit dışı bırakıldı; yalnızca `.env.example` eklendi.
 
-AI tarafından üretilen kod lokal testlerle doğrulandı:
+Doğrulama komutu:
 
 ```bash
 .venv/bin/pytest backend/tests
 ```
-
-Gizli değer kullanılmadı; `.env` commit dışı bırakıldı, `.env.example` eklendi.
 

@@ -107,6 +107,23 @@ button {
   color: #fff;
 }
 
+.tabs {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tabs button {
+  justify-content: flex-start;
+  padding: 0 12px;
+  background: transparent;
+  color: #dce8eb;
+}
+
+.tabs .activeTab {
+  background: #294047;
+}
+
 .primary {
   background: #0f766e;
   color: #fff;
@@ -158,6 +175,17 @@ button {
   gap: 18px;
 }
 
+.adminGrid {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) 420px;
+  gap: 18px;
+}
+
+.adminGrid.single {
+  grid-template-columns: 1fr;
+}
+
 .panel {
   background: #fff;
   border: 1px solid #d9e3e7;
@@ -173,6 +201,17 @@ button {
   gap: 8px;
   border-bottom: 1px solid #d9e3e7;
   font-weight: 700;
+}
+
+.panelTitle .smallAction {
+  margin-left: auto;
+}
+
+.smallAction {
+  min-height: 32px;
+  padding: 0 10px;
+  background: #eef3f5;
+  color: #172026;
 }
 
 .quotePanel {
@@ -237,12 +276,79 @@ td span {
   border-bottom: 1px solid #eef3f5;
 }
 
+.event span {
+  display: block;
+  margin-top: 4px;
+  color: #60737c;
+}
+
 .event code {
   display: block;
   margin-top: 6px;
   color: #455a64;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.tall {
+  max-height: calc(100vh - 180px);
+}
+
+.list {
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+}
+
+.rowButton {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef3f5;
+  border-radius: 0;
+  background: #fff;
+  color: #172026;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.rowButton:hover {
+  background: #f5fafb;
+}
+
+.rowButton span,
+.rowButton em {
+  display: grid;
+}
+
+.rowButton em {
+  margin-top: 4px;
+  color: #60737c;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.editor {
+  padding-bottom: 14px;
+}
+
+.formGrid {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.formGrid label {
+  color: #455a64;
+}
+
+.editorButton {
+  margin: 0 14px;
+  width: calc(100% - 28px);
+}
+
+.empty {
+  padding: 14px;
+  color: #60737c;
 }
 
 @media (max-width: 980px) {
@@ -258,8 +364,11 @@ td span {
     grid-template-columns: 1fr;
   }
 
+  .adminGrid {
+    grid-template-columns: 1fr;
+  }
+
   .quotePanel {
     grid-row: auto;
   }
 }
-

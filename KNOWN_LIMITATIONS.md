@@ -1,7 +1,8 @@
 # Known Limitations
 
-- PDF içeriği bu ortamda metne çevrilemedi. Kabul kriterleri `tool_contracts.json`, `golden_test_scenarios.json`, dataset README ve JSON seed dosyalarından çıkarıldı.
-- Router golden niyetleri deterministik olarak yakalar; serbest doğal dil kapsamı sınırlı ama güvenli fallback davranışı vardır.
-- PostgreSQL transaction davranışı uygulama kodunda SQLAlchemy session commit sınırında çalışır; daha yoğun eşzamanlılık için satır kilidi ve isolation testleri eklenmelidir.
-- Web Docker image statik build sunar; geliştirme için `npm run dev` ayrıca kullanılabilir.
-- Expo mobil app Docker Compose içine alınmadı; mobil geliştirme yerel `expo start` ile yapılır.
+- Retrieval embedding tabanlı değildir; case kapsamı için SQL/alias/tag/category tabanlı deterministic retrieval kullanır.
+- Auth, role management ve production-grade audit policy demo kapsamı dışındadır.
+- LLM opsiyoneldir ve varsayılan kapalıdır; ana karar mekanizması deterministic router’dır.
+- Mobil UI demo seviyesindedir ancak gerçek backend quote ve chat endpointlerine bağlıdır.
+- Deterministic router case kapsamındaki satış/teklif niyetlerini hedefler; serbest genel amaçlı asistan davranışı kapsam dışıdır.
+- Yoğun eşzamanlı mutation yükleri için ek isolation/locking testleri production öncesi genişletilmelidir.
