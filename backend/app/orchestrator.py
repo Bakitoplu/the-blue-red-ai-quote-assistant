@@ -40,11 +40,11 @@ def _price_limit(text: str) -> float | None:
 def _quantity(text: str, default: int = 1) -> int:
     words = {"bir": 1, "iki": 2, "üç": 3, "uc": 3, "dört": 4, "dort": 4, "beş": 5, "bes": 5}
     ntext = _norm(text)
-    m = re.search(r"(\d+)\s*(?:adet|tane|lokasyon)?", ntext)
+    m = re.search(r"(\d+)\s*(?:adet|tane|lokasyon)", ntext)
     if m:
         return int(m.group(1))
     for word, value in words.items():
-        if word in ntext:
+        if re.search(rf"\b{re.escape(word)}\b", ntext):
             return value
     return default
 
@@ -194,6 +194,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": topic, "limit": limit})
 
         if fallback:
+            runner.run("get_knowledge_entries", {"query": "fallback", "locale": "tr", "topic": "fallback", "limit": 1})
             runner.run("get_quote", {"quote_id": req.quote_id})
             actions.append("Güvenli modda teklif bilgisi ve politika kaynakları gösterildi; emin olunmayan mutasyon yapılmadı.")
         elif "redscan mini" in n or ("cep tipi" in n and "değiştir" not in n and "degistir" not in n):
@@ -254,16 +255,21 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             if "indirim" in n:
                 runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "discount_policy", "limit": 1})
             actions.append("BlueScan Air Plus miktarı tekrarsız şekilde güncellendi.")
-        elif "kablosuz" in n or "qr" in n or "bluescan air" in n:
+        elif ("kablosuz" in n or "bluescan air" in n) and any(k in n for k in ["aynı", "ayni", "daha", "toplam"]):
             runner.run("get_quote", {"quote_id": req.quote_id})
-            limit = _price_limit(req.message)
-            qty = _quantity(req.message)
-            runner.run("search_products", {"query": "BlueScan Air kablosuz QR barkod okuyucu", "locale": "tr", "filters": {"max_price_try": limit, "in_stock_only": True}, "limit": 5})
             product_id = "PRD-BC-110"
+            qty = _quantity(req.message)
             if "toplam" in n:
                 current = get_quote(db, req.quote_id).data
                 existing = next((i for i in current["items"] if i["product_id"] == product_id and i["status"] == "active"), {"quantity": 0})
                 qty = max(qty - existing["quantity"], 0)
+            runner.run("add_to_quote", {"quote_id": req.quote_id, "product_id": product_id, "quantity": qty, "idempotency_key": _add_key(message_id, product_id), "source_message_id": message_id})
+            actions.append("Mevcut kablosuz okuyucu satırı ikinci aktif satır açmadan miktar olarak artırıldı.")
+        elif "kablosuz" in n or "qr" in n or "bluescan air" in n:
+            limit = _price_limit(req.message)
+            qty = _quantity(req.message)
+            runner.run("search_products", {"query": "BlueScan Air kablosuz QR barkod okuyucu", "locale": "tr", "filters": {"max_price_try": limit, "in_stock_only": True}, "limit": 5})
+            product_id = "PRD-BC-110"
             runner.run("add_to_quote", {"quote_id": req.quote_id, "product_id": product_id, "quantity": qty, "idempotency_key": _add_key(message_id, product_id), "source_message_id": message_id})
             if limit:
                 runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "price_ceiling", "limit": 1})
