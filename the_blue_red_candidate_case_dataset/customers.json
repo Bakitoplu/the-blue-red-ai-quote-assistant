@@ -1,0 +1,68 @@
+[
+  {
+    "customer_id": "CUST-IST-001",
+    "name": "Mavi Kırmızı Market A.Ş.",
+    "segment": "retail",
+    "city": "İstanbul",
+    "price_tier": "standard",
+    "credit_limit_try": 50000,
+    "allow_backorder": false,
+    "default_locale": "tr",
+    "notes": "Strict stock rule. Main web/mobile sync customer."
+  },
+  {
+    "customer_id": "CUST-ANK-002",
+    "name": "Ankara Toptan Depo Ltd.",
+    "segment": "wholesale",
+    "city": "Ankara",
+    "price_tier": "partner",
+    "credit_limit_try": 120000,
+    "allow_backorder": true,
+    "default_locale": "tr",
+    "notes": "Eligible for partner quantity discounts and backorder."
+  },
+  {
+    "customer_id": "CUST-IZM-003",
+    "name": "İzmir Fresh Gıda",
+    "segment": "food_retail",
+    "city": "İzmir",
+    "price_tier": "standard",
+    "credit_limit_try": 35000,
+    "allow_backorder": false,
+    "default_locale": "tr",
+    "notes": "Uses delivery policy scenarios."
+  },
+  {
+    "customer_id": "CUST-EXT-001",
+    "name": "Mavi Kırmızı Market A.Ş. Pilot Şube",
+    "segment": "retail",
+    "city": "İstanbul",
+    "price_tier": "partner",
+    "credit_limit_try": 70000,
+    "allow_backorder": true,
+    "default_locale": "tr",
+    "notes": "Genişletilmiş JSON dataset müşterisi; temel müşteri: CUST-IST-001."
+  },
+  {
+    "customer_id": "CUST-EXT-002",
+    "name": "Ankara Toptan Depo Ltd. Pilot Şube",
+    "segment": "wholesale",
+    "city": "Ankara",
+    "price_tier": "partner",
+    "credit_limit_try": 168000,
+    "allow_backorder": true,
+    "default_locale": "tr",
+    "notes": "Genişletilmiş JSON dataset müşterisi; temel müşteri: CUST-ANK-002."
+  },
+  {
+    "customer_id": "CUST-EXT-003",
+    "name": "İzmir Fresh Gıda Pilot Şube",
+    "segment": "food_retail",
+    "city": "İzmir",
+    "price_tier": "partner",
+    "credit_limit_try": 49000,
+    "allow_backorder": true,
+    "default_locale": "tr",
+    "notes": "Genişletilmiş JSON dataset müşterisi; temel müşteri: CUST-IZM-003."
+  }
+]

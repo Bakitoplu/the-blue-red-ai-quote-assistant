@@ -1,0 +1,82 @@
+[
+  {
+    "quote_id": "Q-1001",
+    "customer_id": "CUST-IST-001",
+    "status": "draft",
+    "created_by_channel": "mobile",
+    "currency": "TRY",
+    "notes": "Contains one wireless scanner for duplicate/idempotency tests."
+  },
+  {
+    "quote_id": "Q-1002",
+    "customer_id": "CUST-ANK-002",
+    "status": "draft",
+    "created_by_channel": "web",
+    "currency": "TRY",
+    "notes": "Empty partner quote for add and discount scenarios."
+  },
+  {
+    "quote_id": "Q-1003",
+    "customer_id": "CUST-IST-001",
+    "status": "draft",
+    "created_by_channel": "web",
+    "currency": "TRY",
+    "notes": "Contains Ethernet printers for update quantity test."
+  },
+  {
+    "quote_id": "Q-1004",
+    "customer_id": "CUST-IST-001",
+    "status": "draft",
+    "created_by_channel": "mobile",
+    "currency": "TRY",
+    "notes": "Contains expensive rugged scanner for replace-with-alternative test."
+  },
+  {
+    "quote_id": "Q-1005",
+    "customer_id": "CUST-IST-001",
+    "status": "draft",
+    "created_by_channel": "web",
+    "currency": "TRY",
+    "notes": "Contains out-of-stock pocket scanner for stock replacement test."
+  },
+  {
+    "quote_id": "Q-2001",
+    "customer_id": "CUST-EXT-001",
+    "status": "draft",
+    "created_by_channel": "mobile",
+    "currency": "TRY",
+    "notes": "Genişletilmiş JSON dataset teklifi; yedek mod ve tekrar ekleme senaryoları için."
+  },
+  {
+    "quote_id": "Q-2002",
+    "customer_id": "CUST-EXT-002",
+    "status": "draft",
+    "created_by_channel": "web",
+    "currency": "TRY",
+    "notes": "Genişletilmiş JSON dataset teklifi; iş ortağı indirimi ve servis senaryoları için."
+  },
+  {
+    "quote_id": "Q-2003",
+    "customer_id": "CUST-EXT-003",
+    "status": "draft",
+    "created_by_channel": "mobile",
+    "currency": "TRY",
+    "notes": "Genişletilmiş JSON dataset teklifi; aksesuar ve kaynaklı cevap senaryoları için."
+  },
+  {
+    "quote_id": "Q-2004",
+    "customer_id": "CUST-EXT-001",
+    "status": "draft",
+    "created_by_channel": "web",
+    "currency": "TRY",
+    "notes": "Genişletilmiş JSON dataset teklifi; değiştirme senaryoları için."
+  },
+  {
+    "quote_id": "Q-2005",
+    "customer_id": "CUST-EXT-002",
+    "status": "draft",
+    "created_by_channel": "mobile",
+    "currency": "TRY",
+    "notes": "Genişletilmiş JSON dataset teklifi; güncelleme senaryoları için."
+  }
+]

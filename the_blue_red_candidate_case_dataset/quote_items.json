@@ -1,0 +1,82 @@
+[
+  {
+    "quote_item_id": "QI-1001-1",
+    "quote_id": "Q-1001",
+    "product_id": "PRD-BC-110",
+    "quantity": 1,
+    "unit_price_try": 7990,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-1001-PRD-BC-110"
+  },
+  {
+    "quote_item_id": "QI-1003-1",
+    "quote_id": "Q-1003",
+    "product_id": "PRD-PRN-320",
+    "quantity": 2,
+    "unit_price_try": 7350,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-1003-PRD-PRN-320"
+  },
+  {
+    "quote_item_id": "QI-1004-1",
+    "quote_id": "Q-1004",
+    "product_id": "PRD-BC-120",
+    "quantity": 1,
+    "unit_price_try": 12950,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-1004-PRD-BC-120"
+  },
+  {
+    "quote_item_id": "QI-1005-1",
+    "quote_id": "Q-1005",
+    "product_id": "PRD-BC-130",
+    "quantity": 2,
+    "unit_price_try": 6750,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-1005-PRD-BC-130"
+  },
+  {
+    "quote_item_id": "QI-2001-1",
+    "quote_id": "Q-2001",
+    "product_id": "PRD-BC-110-PLUS",
+    "quantity": 1,
+    "unit_price_try": 9430,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-2001-PRD-BC-110-PLUS"
+  },
+  {
+    "quote_item_id": "QI-2003-1",
+    "quote_id": "Q-2003",
+    "product_id": "PRD-ACC-710-PLUS",
+    "quantity": 4,
+    "unit_price_try": 1120,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-2003-PRD-ACC-710-PLUS"
+  },
+  {
+    "quote_item_id": "QI-2004-1",
+    "quote_id": "Q-2004",
+    "product_id": "PRD-PRN-330",
+    "quantity": 1,
+    "unit_price_try": 8900,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-2004-PRD-PRN-330"
+  },
+  {
+    "quote_item_id": "QI-2005-1",
+    "quote_id": "Q-2005",
+    "product_id": "PRD-SVC-810",
+    "quantity": 1,
+    "unit_price_try": 4500,
+    "status": "active",
+    "source_message_id": "seed",
+    "idempotency_key": "seed-Q-2005-PRD-SVC-810"
+  }
+]

@@ -1,0 +1,745 @@
+[
+  {
+    "scenario_id": "SCN-001",
+    "title": "Kesin fiyat limiti altında stoklu kablosuz okuyucu ekleme",
+    "channel": "mobile",
+    "customer_id": "CUST-ANK-002",
+    "quote_id": "Q-1002",
+    "user_message": "9.000 TL altında, stokta olan kablosuz QR barkod okuyucu ekler misin?",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "max_price_try": 9000,
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1002"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110",
+      "KNE-PRICE-001"
+    ],
+    "must_not_recommend": [
+      "PRD-BC-120"
+    ],
+    "quote_assertion": "Q-1002 içinde PRD-BC-110 aktif kalemi miktar 1 olarak bulunmalıdır."
+  },
+  {
+    "scenario_id": "SCN-002",
+    "title": "Stokta olmayan ürünü varsayılan eklemeyi reddedip geçerli alternatif sunma",
+    "channel": "mobile",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1001",
+    "user_message": "Cep tipi RedScan Mini 2D okuyucu ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "query_contains": "RedScan Mini"
+        }
+      },
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "stock_rule"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-130",
+      "KNE-STOCK-001"
+    ],
+    "must_not_call": [
+      "add_to_quote"
+    ],
+    "quote_assertion": "Müşteri backorder'a uygun olmadığı için yeni aktif PRD-BC-130 kalemi oluşturulmamalıdır."
+  },
+  {
+    "scenario_id": "SCN-003",
+    "title": "Tekrar eklemede ikinci satır açmadan miktarı artırma",
+    "channel": "mobile",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1001",
+    "user_message": "Aynı kablosuz barkod okuyucudan 2 tane daha ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1001"
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110",
+          "quantity": 2
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110",
+      "KNE-IDEMP-001"
+    ],
+    "quote_assertion": "Q-1001 içinde iki satır yerine miktarı 3 olan tek aktif PRD-BC-110 satırı bulunmalıdır."
+  },
+  {
+    "scenario_id": "SCN-004",
+    "title": "Mevcut teklif kalemi miktarını güncelleme",
+    "channel": "web",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1003",
+    "user_message": "Ethernet fiş yazıcısını 4 adede çıkar.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1003"
+        }
+      },
+      {
+        "name": "update_quote_item",
+        "must_match": {
+          "product_id": "PRD-PRN-320",
+          "quantity": 4
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-PRN-320"
+    ],
+    "quote_assertion": "Mutasyon sonrası Q-1003 içinde PRD-PRN-320 miktarı tam olarak 4 olmalıdır."
+  },
+  {
+    "scenario_id": "SCN-005",
+    "title": "Pahalı teklif kalemini daha ucuz alternatifle değiştirme",
+    "channel": "mobile",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1004",
+    "user_message": "Rugged okuyucu çok pahalı; 9.000 TL altında stoklu alternatifle değiştir.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1004"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "max_price_try": 9000,
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "replace_with_alternative",
+        "must_match": {
+          "from_product_id": "PRD-BC-120",
+          "to_product_id": "PRD-BC-110"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-120",
+      "PRD-BC-110",
+      "KNE-PRICE-001"
+    ],
+    "quote_assertion": "Q-1004 içinde PRD-BC-120 pasif/değiştirildi durumunda, PRD-BC-110 ise miktar 1 aktif durumda olmalıdır."
+  },
+  {
+    "scenario_id": "SCN-006",
+    "title": "Stok dışı teklif kalemini stoklu alternatifle değiştirme",
+    "channel": "web",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1005",
+    "user_message": "Sepetteki stokta olmayan cep tipi okuyucuyu uygun stoklu alternatifle değiştir.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1005"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "replace_with_alternative",
+        "must_match": {
+          "from_product_id": "PRD-BC-130",
+          "to_product_id": "PRD-BC-140"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-130",
+      "PRD-BC-140",
+      "KNE-STOCK-001"
+    ],
+    "quote_assertion": "Q-1005, PRD-BC-130 yerine PRD-BC-140 koyarken miktar 2 bilgisini korumalıdır."
+  },
+  {
+    "scenario_id": "SCN-007",
+    "title": "Mutasyonsuz, kaynaklı politika cevabı verme",
+    "channel": "mobile",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1001",
+    "user_message": "Aktive edilmiş yazılım lisansını iade edebilir miyiz?",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "return_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-RET-001"
+    ],
+    "must_not_call": [
+      "add_to_quote",
+      "update_quote_item",
+      "replace_with_alternative"
+    ],
+    "quote_assertion": "Teklif değişmeden kalmalıdır."
+  },
+  {
+    "scenario_id": "SCN-008",
+    "title": "Uyumluluk cevabıyla birden fazla gerekli ürün ekleme",
+    "channel": "mobile",
+    "customer_id": "CUST-ANK-002",
+    "quote_id": "Q-1002",
+    "user_message": "Sahada internet olmayacak; 4G'li el terminali ve offline senkron için gereken lisansı ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "compatibility"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "required_tags": [
+            "4g"
+          ]
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-POS-210",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-SW-520",
+          "quantity": 1
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-COMP-001",
+      "PRD-POS-210",
+      "PRD-SW-520"
+    ],
+    "quote_assertion": "Q-1002 içinde PRD-POS-210 ve PRD-SW-520 aktif kalemleri bulunmalıdır."
+  },
+  {
+    "scenario_id": "SCN-009",
+    "title": "Yedek modda güvensiz mutasyon yapmadan kaynaklı cevap dönme",
+    "channel": "web",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1001",
+    "environment": {
+      "OPENAI_API_KEY": ""
+    },
+    "user_message": "İade süresi nedir ve teklifimde hangi ürün var?",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "return_policy"
+        }
+      },
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-1001"
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-RET-001",
+      "PRD-BC-110",
+      "KNE-FALL-001"
+    ],
+    "must_not_call": [
+      "add_to_quote",
+      "update_quote_item",
+      "replace_with_alternative"
+    ],
+    "quote_assertion": "Yedek modda mutasyon yapılmamalıdır."
+  },
+  {
+    "scenario_id": "SCN-010",
+    "title": "Tekrarlı akış isteğinde miktarı iki kez artırmama",
+    "channel": "mobile",
+    "customer_id": "CUST-IST-001",
+    "quote_id": "Q-1001",
+    "user_message": "Kablosuz barkod okuyucudan 1 tane daha ekle.",
+    "repeat_same_message_id": true,
+    "expected_tool_calls": [
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "same_idempotency_key": true,
+          "replayed": true
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110",
+      "KNE-IDEMP-001"
+    ],
+    "quote_assertion": "İki deneme toplamında miktar tam olarak 1 artmalı, 2 artmamalıdır."
+  },
+  {
+    "scenario_id": "SCN-011",
+    "title": "Ekleme sonrası iş ortağı miktar indirimini yeniden hesaplama",
+    "channel": "web",
+    "customer_id": "CUST-ANK-002",
+    "quote_id": "Q-1002",
+    "user_message": "Depo için 3 adet BlueScan Air ekle; partner indirimini de göster.",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "query_contains": "BlueScan Air"
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110",
+          "quantity": 3
+        }
+      },
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "discount_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110",
+      "KNE-DIS-001",
+      "RUL-PARTNER-3"
+    ],
+    "quote_assertion": "Q-1002, okuyucu satırlarına yüzde 7 kategori miktar indirimi uygulamalıdır."
+  },
+  {
+    "scenario_id": "SCN-012",
+    "title": "Türkçe fiyat limitli aksesuar ekleme",
+    "channel": "mobile",
+    "customer_id": "CUST-EXT-003",
+    "quote_id": "Q-2003",
+    "user_message": "1.500 TL altında stokta olan koruyucu kılıf ekle ve kaynağını göster.",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "locale": "tr",
+          "max_price_try": 1500,
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-ACC-710",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2003"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-ACC-710"
+    ],
+    "quote_assertion": "Q-2003 içinde mevcut Plus aksesuar satırına ek olarak miktar 1 aktif PRD-ACC-710 satırı bulunmalıdır."
+  },
+  {
+    "scenario_id": "SCN-013",
+    "title": "Plus üründe tekrar ekleme tekrarsızlığı",
+    "channel": "mobile",
+    "customer_id": "CUST-EXT-001",
+    "quote_id": "Q-2001",
+    "user_message": "BlueScan Air Plus modelinden 1 tane daha ekle, aynı istek tekrar gelirse iki kez artırma.",
+    "repeat_same_message_id": true,
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2001"
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110-PLUS",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "same_idempotency_key": true,
+          "replayed": true
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110-PLUS",
+      "KNE-IDEMP-001"
+    ],
+    "quote_assertion": "Q-2001 içinde PRD-BC-110-PLUS miktarı iki deneme toplamında tam olarak 1 artmalıdır."
+  },
+  {
+    "scenario_id": "SCN-014",
+    "title": "Stok dışı mobil yazıcıyı stoklu yazıcıyla değiştirme",
+    "channel": "web",
+    "customer_id": "CUST-EXT-001",
+    "quote_id": "Q-2004",
+    "user_message": "Stokta olmayan mobil Bluetooth yazıcıyı stoklu Ethernet fiş yazıcıyla değiştir.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2004"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "in_stock_only": true,
+          "query_contains": "fiş yazıcı"
+        }
+      },
+      {
+        "name": "replace_with_alternative",
+        "must_match": {
+          "from_product_id": "PRD-PRN-330",
+          "to_product_id": "PRD-PRN-320"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-PRN-330",
+      "PRD-PRN-320",
+      "KNE-STOCK-001"
+    ],
+    "quote_assertion": "Q-2004 içinde PRD-PRN-330 değiştirildi/pasif işaretlenmeli ve miktar 1 aktif PRD-PRN-320 eklenmelidir."
+  },
+  {
+    "scenario_id": "SCN-015",
+    "title": "Kurulum hizmeti miktarını güncelleme",
+    "channel": "web",
+    "customer_id": "CUST-EXT-002",
+    "quote_id": "Q-2005",
+    "user_message": "Yerinde kurulum hizmetini 2 lokasyon için güncelle.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2005"
+        }
+      },
+      {
+        "name": "update_quote_item",
+        "must_match": {
+          "product_id": "PRD-SVC-810",
+          "quantity": 2
+        }
+      },
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "service_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-SVC-810",
+      "KNE-SVC-001"
+    ],
+    "quote_assertion": "Güncelleme sonrası Q-2005 içinde PRD-SVC-810 miktarı tam olarak 2 olmalıdır."
+  },
+  {
+    "scenario_id": "SCN-016",
+    "title": "Aktive lisans için Türkçe iade politikası cevabı",
+    "channel": "mobile",
+    "customer_id": "CUST-EXT-003",
+    "quote_id": "Q-2003",
+    "user_message": "Aktive edilmiş yazılım lisansları iade edilebilir mi?",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "locale": "tr",
+          "topic": "return_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-RET-001",
+      "KNE-RET-001-SUP"
+    ],
+    "must_not_call": [
+      "add_to_quote",
+      "update_quote_item",
+      "replace_with_alternative"
+    ],
+    "quote_assertion": "Teklif değişmeden kalmalıdır."
+  },
+  {
+    "scenario_id": "SCN-017",
+    "title": "Yazılım uyumluluğuna göre modül ekleme",
+    "channel": "web",
+    "customer_id": "CUST-EXT-002",
+    "quote_id": "Q-2002",
+    "user_message": "Offline senkron ve şube senkronu için gerekli yazılımları ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "compatibility"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "required_tags": [
+            "offline"
+          ]
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-SW-520",
+          "quantity": 1
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-SW-530",
+          "quantity": 1
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-COMP-001",
+      "PRD-SW-520",
+      "PRD-SW-530",
+      "RUL-SW-BUNDLE"
+    ],
+    "quote_assertion": "Q-2002 içinde PRD-SW-520 ve PRD-SW-530 miktar 1 aktif kalem olarak bulunmalıdır."
+  },
+  {
+    "scenario_id": "SCN-018",
+    "title": "Acil kurulum bölge kuralını kaynakla açıklama",
+    "channel": "mobile",
+    "customer_id": "CUST-EXT-003",
+    "quote_id": "Q-2003",
+    "user_message": "İzmir için yarına acil kurulum kesin diyebilir miyiz?",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "service_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-SVC-001"
+    ],
+    "must_not_call": [
+      "add_to_quote",
+      "update_quote_item",
+      "replace_with_alternative"
+    ],
+    "quote_assertion": "Mutasyon yapılmamalı; cevap İzmir için acil kurulumu kesin vaat etmemelidir."
+  },
+  {
+    "scenario_id": "SCN-019",
+    "title": "Plus ürün hacim indirimi için miktar ekleme",
+    "channel": "web",
+    "customer_id": "CUST-EXT-001",
+    "quote_id": "Q-2001",
+    "user_message": "BlueScan Air Plus toplam 4 adet olsun, varsa hacim indirimini göster.",
+    "expected_tool_calls": [
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2001"
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110-PLUS",
+          "quantity": 3
+        }
+      },
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "topic": "discount_policy"
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110-PLUS",
+      "KNE-DIS-001",
+      "RUL-PLUS-QTY"
+    ],
+    "quote_assertion": "Q-2001 içinde PRD-BC-110-PLUS miktarı 4 olmalı ve Plus miktar indirimi görünmelidir."
+  },
+  {
+    "scenario_id": "SCN-020",
+    "title": "Fiyat üst limiti altında Plus yerine temel ürün seçme",
+    "channel": "mobile",
+    "customer_id": "CUST-ANK-002",
+    "quote_id": "Q-1002",
+    "user_message": "8.500 TL üstüne çıkmadan kablosuz QR okuyucu ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "max_price_try": 8500,
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-BC-110",
+          "quantity": 1
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-BC-110",
+      "KNE-PRICE-001"
+    ],
+    "must_not_recommend": [
+      "PRD-BC-110-PLUS",
+      "PRD-BC-120"
+    ],
+    "quote_assertion": "Plus varyant limitin üzerinde olduğu için Q-1002 içine PRD-BC-110 eklenmeli, PRD-BC-110-PLUS eklenmemelidir."
+  },
+  {
+    "scenario_id": "SCN-021",
+    "title": "Yedek modda Türkçe kaynaklı teslimat cevabı",
+    "channel": "web",
+    "customer_id": "CUST-EXT-003",
+    "quote_id": "Q-2003",
+    "environment": {
+      "OPENAI_API_KEY": ""
+    },
+    "user_message": "Stokta olan donanımlar için teslimat kuralı nedir?",
+    "expected_tool_calls": [
+      {
+        "name": "get_knowledge_entries",
+        "must_match": {
+          "locale": "tr",
+          "topic": "delivery_policy"
+        }
+      },
+      {
+        "name": "get_quote",
+        "must_match": {
+          "quote_id": "Q-2003"
+        }
+      }
+    ],
+    "expected_sources": [
+      "KNE-SHIP-001",
+      "KNE-SHIP-001-SUP",
+      "KNE-FALL-001"
+    ],
+    "must_not_call": [
+      "add_to_quote",
+      "update_quote_item",
+      "replace_with_alternative"
+    ],
+    "quote_assertion": "Yedek modda mutasyon yapılmamalıdır."
+  },
+  {
+    "scenario_id": "SCN-022",
+    "title": "Araç şarj stok dışıysa USB-C alternatif ekleme",
+    "channel": "mobile",
+    "customer_id": "CUST-EXT-002",
+    "quote_id": "Q-2002",
+    "user_message": "Araç şarj adaptörü yoksa stoklu USB-C hızlı şarj alternatifini ekle.",
+    "expected_tool_calls": [
+      {
+        "name": "search_products",
+        "must_match": {
+          "query_contains": "araç şarj"
+        }
+      },
+      {
+        "name": "search_products",
+        "must_match": {
+          "query_contains": "USB-C",
+          "in_stock_only": true
+        }
+      },
+      {
+        "name": "add_to_quote",
+        "must_match": {
+          "product_id": "PRD-ACC-740",
+          "quantity": 1
+        }
+      }
+    ],
+    "expected_sources": [
+      "PRD-ACC-730",
+      "PRD-ACC-740",
+      "KNE-STOCK-001"
+    ],
+    "quote_assertion": "Q-2002 içinde miktar 1 aktif PRD-ACC-740 bulunmalı ve PRD-ACC-730 eklenmemelidir."
+  }
+]

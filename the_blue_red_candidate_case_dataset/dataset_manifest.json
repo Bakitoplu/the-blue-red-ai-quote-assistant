@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-06-03",
+  "format": "json",
+  "counts": {
+    "products": 48,
+    "knowledge_entries": 22,
+    "customers": 6,
+    "quotes": 10,
+    "quote_items": 8,
+    "price_rules": 6,
+    "tool_contracts": 6,
+    "golden_test_scenarios": 22,
+    "tool_call_coverage": 6
+  },
+  "files": [
+    "products.json",
+    "knowledge_entries.json",
+    "customers.json",
+    "quotes.json",
+    "quote_items.json",
+    "price_rules.json",
+    "tool_contracts.json",
+    "golden_test_scenarios.json",
+    "tool_call_coverage.json",
+    "dataset_manifest.json",
+    "seed.sql"
+  ]
+}

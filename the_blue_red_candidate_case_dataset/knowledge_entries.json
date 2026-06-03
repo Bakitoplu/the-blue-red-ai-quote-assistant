@@ -1,0 +1,292 @@
+[
+  {
+    "knowledge_id": "KNE-RET-001",
+    "topic": "return_policy",
+    "locale": "tr",
+    "title": "Donanım ve yazılım iade politikası",
+    "body": "Stoktan satılan donanım ürünleri teslimden itibaren 14 gün içinde, kutusu açılmamış ve seri numarası eşleşir durumdaysa iade edilebilir. Aktivasyonu yapılmış yazılım lisansları ve özel kurulum hizmetleri iade kapsamında değildir.",
+    "source": "policy/returns/v2026-04",
+    "applies_to": [
+      "hardware",
+      "software",
+      "service"
+    ],
+    "effective_from": "2026-04-01"
+  },
+  {
+    "knowledge_id": "KNE-SHIP-001",
+    "topic": "delivery_policy",
+    "locale": "tr",
+    "title": "Teslimat süreleri",
+    "body": "Stokta olan ürünler İstanbul içine 1-2 iş günü, Ankara ve İzmir'e 2-3 iş günü, diğer illere 3-5 iş günü içinde sevk edilir. Stokta olmayan ürünler varsayılan öneri listesine alınmaz.",
+    "source": "policy/delivery/v2026-04",
+    "applies_to": [
+      "hardware",
+      "accessory"
+    ],
+    "effective_from": "2026-04-01"
+  },
+  {
+    "knowledge_id": "KNE-WAR-001",
+    "topic": "warranty",
+    "locale": "tr",
+    "title": "Garanti kapsamı",
+    "body": "Barkod okuyucu, yazıcı ve el terminalleri 24 ay garanti kapsamındadır. Rugged seri ürünlerde garanti 36 aydır. Batarya ve sarf aksesuarlarında garanti süresi 6 aydır.",
+    "source": "policy/warranty/v2026-01",
+    "applies_to": [
+      "hardware",
+      "accessory"
+    ],
+    "effective_from": "2026-01-01"
+  },
+  {
+    "knowledge_id": "KNE-QUOTE-001",
+    "topic": "quote_validity",
+    "locale": "tr",
+    "title": "Teklif geçerliliği ve stok rezervasyonu",
+    "body": "Taslak teklifler stok rezervasyonu yapmaz. Onay bekleyen teklifler 7 gün geçerlidir ve satış temsilcisi onayından sonra stok rezervasyonu başlar.",
+    "source": "policy/quotes/v2026-03",
+    "applies_to": [
+      "quote"
+    ],
+    "effective_from": "2026-03-10"
+  },
+  {
+    "knowledge_id": "KNE-DIS-001",
+    "topic": "discount_policy",
+    "locale": "tr",
+    "title": "Miktar ve partner indirimleri",
+    "body": "Partner fiyat seviyesindeki müşterilerde barkod okuyucu, fiş yazıcı ve etiket yazıcı kategorilerinde aynı kategori içinde 3 ve üzeri adet için yüzde 7 indirim uygulanır. Aksesuar kategorisinde 5 ve üzeri adet için yüzde 5 indirim uygulanır. Kit ürünlerinde ek indirim yoktur.",
+    "source": "policy/discounts/v2026-05",
+    "applies_to": [
+      "barcode_scanner",
+      "receipt_printer",
+      "label_printer",
+      "accessory",
+      "bundle"
+    ],
+    "effective_from": "2026-05-01"
+  },
+  {
+    "knowledge_id": "KNE-STOCK-001",
+    "topic": "stock_rule",
+    "locale": "tr",
+    "title": "Stokta olmayan ürün önerme kuralı",
+    "body": "Stok miktarı 0 olan ürünler varsayılan olarak önerilmez ve teklif taslağına eklenmez. Kullanıcı açıkça bekleyebileceğini belirtir ve müşteri backorder için uygunsa, ürün beklemeli teklif kalemi olarak işaretlenebilir.",
+    "source": "policy/stock/v2026-05",
+    "applies_to": [
+      "product_selection",
+      "quote"
+    ],
+    "effective_from": "2026-05-01"
+  },
+  {
+    "knowledge_id": "KNE-SVC-001",
+    "topic": "service_policy",
+    "locale": "tr",
+    "title": "Kurulum hizmeti kapsamı",
+    "body": "Yerinde kurulum hizmeti randevulu verilir. Acil kurulum yalnızca İstanbul ve Ankara içinde, hafta içi günlerde ve ekip müsaitliği varsa 1 iş günü içinde planlanabilir.",
+    "source": "policy/services/v2026-02",
+    "applies_to": [
+      "service"
+    ],
+    "effective_from": "2026-02-15"
+  },
+  {
+    "knowledge_id": "KNE-COMP-001",
+    "topic": "compatibility",
+    "locale": "tr",
+    "title": "Saha terminali ve offline senkron uyumluluğu",
+    "body": "Saha kullanımı ve yerel ağ olmayan mağazalar için 4G destekli el terminali önerilir. Offline senkron ihtiyacı varsa BlueStock Pro lisansı gerekir; Starter lisans offline senkron içermez.",
+    "source": "kb/compatibility/field-sales-2026",
+    "applies_to": [
+      "pos_terminal",
+      "software"
+    ],
+    "effective_from": "2026-03-20"
+  },
+  {
+    "knowledge_id": "KNE-IDEMP-001",
+    "topic": "quote_idempotency",
+    "locale": "tr",
+    "title": "Teklif kalemi tekrar ekleme davranışı",
+    "body": "Aynı ürün aynı teklif taslağına tekrar eklenirse yeni satır oluşturulmaz; miktar artırılır. Aynı idempotency anahtarıyla gelen tekrar istekleri ikinci kez miktar artırmaz.",
+    "source": "engineering/quote-rules/v1",
+    "applies_to": [
+      "quote",
+      "quote_item"
+    ],
+    "effective_from": "2026-04-20"
+  },
+  {
+    "knowledge_id": "KNE-PRICE-001",
+    "topic": "price_ceiling",
+    "locale": "tr",
+    "title": "Fiyat limiti kesin kuralı",
+    "body": "Kullanıcı bir üst fiyat limiti verdiğinde, bu limitin üzerindeki ürünler öneri cevabında ana öneri olarak sunulmaz ve teklif taslağına otomatik eklenmez. Alternatifler limitin altında ve stokta olmalıdır.",
+    "source": "policy/pricing/v2026-05",
+    "applies_to": [
+      "product_selection"
+    ],
+    "effective_from": "2026-05-05"
+  },
+  {
+    "knowledge_id": "KNE-FALL-001",
+    "topic": "fallback",
+    "locale": "tr",
+    "title": "LLM başarısız olduğunda minimum yanıt",
+    "body": "OPENAI_API_KEY yoksa veya LLM çağrısı başarısız olursa sistem retrieval sonuçları ve teklif durumu üzerinden kontrollü yanıt üretir. Bu modda kaynaklar yine döndürülür; emin olunmayan mutasyonlar yapılmaz.",
+    "source": "engineering/fallback/v1",
+    "applies_to": [
+      "chat",
+      "retrieval",
+      "quote"
+    ],
+    "effective_from": "2026-04-25"
+  },
+  {
+    "knowledge_id": "KNE-RET-001-SUP",
+    "topic": "return_policy",
+    "locale": "tr",
+    "title": "İade değerlendirme uygulama notu",
+    "body": "İade cevabı verilirken ürün tipi, aktivasyon durumu ve teslim tarihi birlikte kontrol edilmelidir. Aktivasyonu yapılmış lisanslarda kullanıcıya iade yapılamayacağı açık ve kaynaklı şekilde söylenmelidir.",
+    "source": "policy/returns/v2026-04#uygulama-notu",
+    "applies_to": [
+      "hardware",
+      "software",
+      "service"
+    ],
+    "effective_from": "2026-04-01"
+  },
+  {
+    "knowledge_id": "KNE-SHIP-001-SUP",
+    "topic": "delivery_policy",
+    "locale": "tr",
+    "title": "Teslimat cevabı uygulama notu",
+    "body": "Teslimat cevabı kesin tarih vaadi olarak yazılmamalıdır. Stok, şehir ve hizmet tipi birlikte kontrol edilmeli; stokta olmayan ürün için varsayılan teslimat sözü verilmemelidir.",
+    "source": "policy/delivery/v2026-04#uygulama-notu",
+    "applies_to": [
+      "hardware",
+      "accessory"
+    ],
+    "effective_from": "2026-04-01"
+  },
+  {
+    "knowledge_id": "KNE-WAR-001-SUP",
+    "topic": "warranty",
+    "locale": "tr",
+    "title": "Garanti cevabı uygulama notu",
+    "body": "Garanti cevabı kategoriye göre verilmelidir. Rugged ürünlerde 36 ay, ana donanımlarda 24 ay, batarya ve sarf aksesuarlarda 6 ay bilgisi ayrı ayrı korunmalıdır.",
+    "source": "policy/warranty/v2026-01#uygulama-notu",
+    "applies_to": [
+      "hardware",
+      "accessory"
+    ],
+    "effective_from": "2026-01-01"
+  },
+  {
+    "knowledge_id": "KNE-QUOTE-001-SUP",
+    "topic": "quote_validity",
+    "locale": "tr",
+    "title": "Teklif durumu uygulama notu",
+    "body": "Taslak teklif müşteriye fiyat görünürlüğü sağlar ancak stok rezervasyonu yapmaz. Kullanıcı stok garantisi isterse satış temsilcisi onayı gerektiği belirtilmelidir.",
+    "source": "policy/quotes/v2026-03#uygulama-notu",
+    "applies_to": [
+      "quote"
+    ],
+    "effective_from": "2026-03-10"
+  },
+  {
+    "knowledge_id": "KNE-DIS-001-SUP",
+    "topic": "discount_policy",
+    "locale": "tr",
+    "title": "İndirim hesaplama uygulama notu",
+    "body": "İndirim cevabı verilirken müşteri fiyat seviyesi, kategori ve miktar birlikte değerlendirilmelidir. Kit ürünlerinde ek indirim uygulanmamalıdır.",
+    "source": "policy/discounts/v2026-05#uygulama-notu",
+    "applies_to": [
+      "barcode_scanner",
+      "receipt_printer",
+      "label_printer",
+      "accessory",
+      "bundle"
+    ],
+    "effective_from": "2026-05-01"
+  },
+  {
+    "knowledge_id": "KNE-STOCK-001-SUP",
+    "topic": "stock_rule",
+    "locale": "tr",
+    "title": "Stok dışı ürün uygulama notu",
+    "body": "Stokta olmayan ürün kullanıcı açıkça beklemeyi kabul etmeden teklif taslağına eklenmemelidir. Uygun alternatif varsa önce stoklu alternatif sunulmalıdır.",
+    "source": "policy/stock/v2026-05#uygulama-notu",
+    "applies_to": [
+      "product_selection",
+      "quote"
+    ],
+    "effective_from": "2026-05-01"
+  },
+  {
+    "knowledge_id": "KNE-SVC-001-SUP",
+    "topic": "service_policy",
+    "locale": "tr",
+    "title": "Servis planlama uygulama notu",
+    "body": "Kurulum cevabı şehir ve ekip müsaitliği kontrol edilmeden kesinleştirilmemelidir. Acil kurulum yalnızca kapsam dahilindeki şehirlerde kaynakla açıklanmalıdır.",
+    "source": "policy/services/v2026-02#uygulama-notu",
+    "applies_to": [
+      "service"
+    ],
+    "effective_from": "2026-02-15"
+  },
+  {
+    "knowledge_id": "KNE-COMP-001-SUP",
+    "topic": "compatibility",
+    "locale": "tr",
+    "title": "Uyumluluk değerlendirme uygulama notu",
+    "body": "Saha kullanımı, internet erişimi ve offline senkron ihtiyacı ayrı gereksinimler olarak ele alınmalıdır. Offline senkron gerekiyorsa Starter lisans yeterli gösterilmemelidir.",
+    "source": "kb/compatibility/field-sales-2026#uygulama-notu",
+    "applies_to": [
+      "pos_terminal",
+      "software"
+    ],
+    "effective_from": "2026-03-20"
+  },
+  {
+    "knowledge_id": "KNE-IDEMP-001-SUP",
+    "topic": "quote_idempotency",
+    "locale": "tr",
+    "title": "Tekrarlı istek uygulama notu",
+    "body": "Aynı mesaj veya aynı idempotency anahtarı tekrar işlenirse miktar ikinci kez artırılmamalıdır. Kullanıcı aynı üründen ek miktar istediğinde ise mevcut satır miktarı artırılmalıdır.",
+    "source": "engineering/quote-rules/v1#uygulama-notu",
+    "applies_to": [
+      "quote",
+      "quote_item"
+    ],
+    "effective_from": "2026-04-20"
+  },
+  {
+    "knowledge_id": "KNE-PRICE-001-SUP",
+    "topic": "price_ceiling",
+    "locale": "tr",
+    "title": "Fiyat limiti uygulama notu",
+    "body": "Fiyat üst limiti kullanıcı tarafından açık verildiyse pazarlık önerisi gibi yorumlanmamalıdır. Otomatik ekleme ve değiştirme kararlarında limit kesin filtre olarak uygulanmalıdır.",
+    "source": "policy/pricing/v2026-05#uygulama-notu",
+    "applies_to": [
+      "product_selection"
+    ],
+    "effective_from": "2026-05-05"
+  },
+  {
+    "knowledge_id": "KNE-FALL-001-SUP",
+    "topic": "fallback",
+    "locale": "tr",
+    "title": "Yedek mod uygulama notu",
+    "body": "Yedek modda sistem yalnızca retrieval sonucu ve teklif durumu üzerinden güvenli cevap vermelidir. Emin olunmayan ürün mutasyonları yapılmamalı ve kaynaklar yine döndürülmelidir.",
+    "source": "engineering/fallback/v1#uygulama-notu",
+    "applies_to": [
+      "chat",
+      "retrieval",
+      "quote"
+    ],
+    "effective_from": "2026-04-25"
+  }
+]

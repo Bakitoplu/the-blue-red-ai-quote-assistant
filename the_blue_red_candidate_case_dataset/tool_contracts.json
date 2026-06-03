@@ -1,0 +1,107 @@
+[
+  {
+    "name": "search_products",
+    "kind": "read",
+    "required": true,
+    "description": "Metin sorgusu, Türkçe alias ve yapısal filtrelerle ürün adaylarını bulur.",
+    "input_schema": {
+      "query": "string",
+      "locale": "tr",
+      "filters": {
+        "category": "string|null",
+        "max_price_try": "number|null",
+        "in_stock_only": "boolean",
+        "required_tags": "string[]"
+      },
+      "limit": "integer"
+    },
+    "acceptance_rules": [
+      "Açık verilen max_price_try değeri otomatik ekleme/değiştirme kararları için kesin filtre olarak uygulanmalıdır.",
+      "stock_qty = 0 olan ürünler yalnızca erişilemeyen eşleşme olarak görünebilir; varsayılan öneri olamaz.",
+      "product_id, sku, price_try, stock_qty, category ve eşleşme kanıtı döndürülmelidir."
+    ]
+  },
+  {
+    "name": "get_knowledge_entries",
+    "kind": "read",
+    "required": true,
+    "description": "Kaynak olarak kullanılacak politika veya uyumluluk kayıtlarını getirir.",
+    "input_schema": {
+      "query": "string",
+      "locale": "tr",
+      "topic": "string|null",
+      "limit": "integer"
+    },
+    "acceptance_rules": [
+      "Her politika cevabı en az bir knowledge_id kaynağına referans vermelidir.",
+      "Kullanıcı dili Türkçe değilse cevap dili değişebilir; kaynak ID'leri sabit kalmalıdır."
+    ]
+  },
+  {
+    "name": "get_quote",
+    "kind": "read",
+    "required": true,
+    "description": "Web ve mobil yüzeyleri için ortak güncel teklif durumunu döndürür.",
+    "input_schema": {
+      "quote_id": "string"
+    },
+    "acceptance_rules": [
+      "Web ve mobil aynı kalıcı teklif durumunu okumalıdır.",
+      "Cevap satır toplamlarını, uygulanan indirimleri ve kalem durumlarını içermelidir."
+    ]
+  },
+  {
+    "name": "add_to_quote",
+    "kind": "mutation",
+    "required": true,
+    "description": "Ürünü taslak teklife ekler veya ürün zaten varsa miktarı artırır.",
+    "input_schema": {
+      "quote_id": "string",
+      "product_id": "string",
+      "quantity": "integer > 0",
+      "idempotency_key": "string",
+      "source_message_id": "string"
+    },
+    "acceptance_rules": [
+      "Teklif kalemi mutasyonu kalıcı olarak yazılmalıdır.",
+      "Kullanıcı backorder'ı açıkça kabul etmeden ve müşteri buna uygun olmadan stock_qty = 0 ürün eklenmemelidir.",
+      "Aynı idempotency_key miktarı ikinci kez artırmamalıdır.",
+      "Aynı ürün için ikinci aktif satır oluşturulamaz; bunun yerine miktar artırılmalıdır."
+    ]
+  },
+  {
+    "name": "update_quote_item",
+    "kind": "mutation",
+    "required": true,
+    "description": "Mevcut teklif kaleminin miktarını ayarlar.",
+    "input_schema": {
+      "quote_id": "string",
+      "product_id": "string",
+      "quantity": "integer >= 0",
+      "reason": "string"
+    },
+    "acceptance_rules": [
+      "quantity = 0, belgelenen uygulama tercihine göre silme veya pasifleştirme olarak ele alınmalıdır.",
+      "Güncellemeden sonra toplamlar ve indirimler yeniden hesaplanmalıdır."
+    ]
+  },
+  {
+    "name": "replace_with_alternative",
+    "kind": "mutation",
+    "required": true,
+    "description": "Mevcut teklif kalemini stokta olan alternatifle değiştirir.",
+    "input_schema": {
+      "quote_id": "string",
+      "from_product_id": "string",
+      "to_product_id": "string",
+      "quantity": "integer > 0|null",
+      "reason": "string",
+      "idempotency_key": "string"
+    },
+    "acceptance_rules": [
+      "Önceki satır değiştirildi veya pasif olarak işaretlenmelidir; kullanıcı karşılaştırma istemedikçe iki aktif muadil bırakılmamalıdır.",
+      "Alternatif açık fiyat ve stok kısıtlarını sağlamalıdır.",
+      "Cevap değişimin neden yapıldığını açıklamalı ve ürün kanıtına referans vermelidir."
+    ]
+  }
+]

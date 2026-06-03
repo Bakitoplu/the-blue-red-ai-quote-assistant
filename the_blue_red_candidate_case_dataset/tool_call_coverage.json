@@ -1,0 +1,106 @@
+[
+  {
+    "tool_name": "search_products",
+    "kind": "read",
+    "required": true,
+    "scenario_count": 11,
+    "scenario_ids": [
+      "SCN-001",
+      "SCN-002",
+      "SCN-005",
+      "SCN-006",
+      "SCN-008",
+      "SCN-011",
+      "SCN-012",
+      "SCN-014",
+      "SCN-017",
+      "SCN-020",
+      "SCN-022"
+    ],
+    "minimum_evidence": "tool_call logu + dönen kaynak/durum"
+  },
+  {
+    "tool_name": "get_knowledge_entries",
+    "kind": "read",
+    "required": true,
+    "scenario_count": 11,
+    "scenario_ids": [
+      "SCN-002",
+      "SCN-007",
+      "SCN-008",
+      "SCN-009",
+      "SCN-011",
+      "SCN-015",
+      "SCN-016",
+      "SCN-017",
+      "SCN-018",
+      "SCN-019",
+      "SCN-021"
+    ],
+    "minimum_evidence": "tool_call logu + dönen kaynak/durum"
+  },
+  {
+    "tool_name": "get_quote",
+    "kind": "read",
+    "required": true,
+    "scenario_count": 12,
+    "scenario_ids": [
+      "SCN-001",
+      "SCN-003",
+      "SCN-004",
+      "SCN-005",
+      "SCN-006",
+      "SCN-009",
+      "SCN-012",
+      "SCN-013",
+      "SCN-014",
+      "SCN-015",
+      "SCN-019",
+      "SCN-021"
+    ],
+    "minimum_evidence": "tool_call logu + dönen kaynak/durum"
+  },
+  {
+    "tool_name": "add_to_quote",
+    "kind": "mutation",
+    "required": true,
+    "scenario_count": 11,
+    "scenario_ids": [
+      "SCN-001",
+      "SCN-003",
+      "SCN-008",
+      "SCN-010",
+      "SCN-011",
+      "SCN-012",
+      "SCN-013",
+      "SCN-017",
+      "SCN-019",
+      "SCN-020",
+      "SCN-022"
+    ],
+    "minimum_evidence": "tool_call logu + kalıcı sonuç"
+  },
+  {
+    "tool_name": "update_quote_item",
+    "kind": "mutation",
+    "required": true,
+    "scenario_count": 2,
+    "scenario_ids": [
+      "SCN-004",
+      "SCN-015"
+    ],
+    "minimum_evidence": "tool_call logu + kalıcı sonuç"
+  },
+  {
+    "tool_name": "replace_with_alternative",
+    "kind": "mutation",
+    "required": true,
+    "scenario_count": 3,
+    "scenario_ids": [
+      "SCN-005",
+      "SCN-006",
+      "SCN-014"
+    ],
+    "minimum_evidence": "tool_call logu + kalıcı sonuç"
+  }
+]

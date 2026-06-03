@@ -1,0 +1,38 @@
+[
+  {
+    "rule_id": "RUL-PARTNER-3",
+    "name": "Partner category quantity discount",
+    "condition": "customer.price_tier == partner and category in barcode_scanner,receipt_printer,label_printer and category_qty >= 3",
+    "discount_percent": 7
+  },
+  {
+    "rule_id": "RUL-ACC-5",
+    "name": "Accessory quantity discount",
+    "condition": "category == accessory and product_qty >= 5",
+    "discount_percent": 5
+  },
+  {
+    "rule_id": "RUL-BUNDLE-NO-STACK",
+    "name": "Bundle no extra discount",
+    "condition": "category == bundle",
+    "discount_percent": 0
+  },
+  {
+    "rule_id": "RUL-SVC-URGENT",
+    "name": "Urgent service no discount",
+    "condition": "category == service and tags contains acil",
+    "discount_percent": 0
+  },
+  {
+    "rule_id": "RUL-SW-BUNDLE",
+    "name": "Software plus module bundle discount",
+    "condition": "category == software and quote contains PRD-SW-520 and PRD-SW-530",
+    "discount_percent": 8
+  },
+  {
+    "rule_id": "RUL-PLUS-QTY",
+    "name": "Plus variant volume discount",
+    "condition": "sku ends_with PLUS and product_qty >= 4",
+    "discount_percent": 6
+  }
+]

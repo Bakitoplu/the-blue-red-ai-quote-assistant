@@ -1,0 +1,1474 @@
+[
+  {
+    "product_id": "PRD-BC-100",
+    "sku": "TBR-BC-100",
+    "name_tr": "BlueScan Lite 1D USB Barkod Okuyucu",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 2450,
+    "stock_qty": 44,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 24,
+    "tags": [
+      "1d",
+      "usb",
+      "kablolu",
+      "giris"
+    ],
+    "aliases": {
+      "tr": [
+        "barkod okuyucu",
+        "kablolu okuyucu",
+        "1d scanner"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110",
+      "PRD-BC-140"
+    ],
+    "notes": "Entry-level wired scanner. No QR support."
+  },
+  {
+    "product_id": "PRD-BC-110",
+    "sku": "TBR-BC-110",
+    "name_tr": "BlueScan Air 2D Bluetooth Barkod Okuyucu",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 7990,
+    "stock_qty": 18,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 24,
+    "tags": [
+      "2d",
+      "qr",
+      "bluetooth",
+      "kablosuz"
+    ],
+    "aliases": {
+      "tr": [
+        "kablosuz barkod okuyucu",
+        "qr okuyucu",
+        "2d scanner"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-120",
+      "PRD-BC-140"
+    ],
+    "notes": "Default wireless 2D scanner for retail counters."
+  },
+  {
+    "product_id": "PRD-BC-120",
+    "sku": "TBR-BC-120",
+    "name_tr": "BlueScan Pro Rugged 2D Endüstriyel Okuyucu",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 12950,
+    "stock_qty": 4,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 36,
+    "tags": [
+      "2d",
+      "rugged",
+      "depo",
+      "endustriyel"
+    ],
+    "aliases": {
+      "tr": [
+        "endüstriyel okuyucu",
+        "dayanıklı scanner",
+        "rugged okuyucu"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110",
+      "PRD-BC-140"
+    ],
+    "notes": "Rugged device; should be excluded under low price ceilings."
+  },
+  {
+    "product_id": "PRD-BC-130",
+    "sku": "TBR-BC-130",
+    "name_tr": "RedScan Mini Pocket 2D Okuyucu",
+    "category": "barcode_scanner",
+    "brand": "RedScan",
+    "price_try": 6750,
+    "stock_qty": 0,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 10,
+    "warranty_months": 24,
+    "tags": [
+      "2d",
+      "cep",
+      "pocket",
+      "bluetooth"
+    ],
+    "aliases": {
+      "tr": [
+        "cep tipi okuyucu",
+        "mini scanner",
+        "pocket okuyucu"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-140",
+      "PRD-BC-110"
+    ],
+    "notes": "Out of stock. Use for replacement and stock-rule tests."
+  },
+  {
+    "product_id": "PRD-BC-140",
+    "sku": "TBR-BC-140",
+    "name_tr": "GreenScan Eco 1D Kablosuz Okuyucu",
+    "category": "barcode_scanner",
+    "brand": "GreenScan",
+    "price_try": 5350,
+    "stock_qty": 20,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 18,
+    "tags": [
+      "1d",
+      "kablosuz",
+      "ekonomik"
+    ],
+    "aliases": {
+      "tr": [
+        "ucuz kablosuz okuyucu",
+        "ekonomik scanner"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110",
+      "PRD-BC-100"
+    ],
+    "notes": "Budget alternative; no 2D/QR support."
+  },
+  {
+    "product_id": "PRD-POS-210",
+    "sku": "TBR-POS-210",
+    "name_tr": "BluePOS Android El Terminali 4G",
+    "category": "pos_terminal",
+    "brand": "BluePOS",
+    "price_try": 18250,
+    "stock_qty": 7,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 24,
+    "tags": [
+      "android",
+      "4g",
+      "saha",
+      "offline"
+    ],
+    "aliases": {
+      "tr": [
+        "4g el terminali",
+        "saha satış terminali",
+        "android terminal"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-230"
+    ],
+    "notes": "Use when user says field sales or no local network."
+  },
+  {
+    "product_id": "PRD-POS-220",
+    "sku": "TBR-POS-220",
+    "name_tr": "RedPOS Android El Terminali WiFi",
+    "category": "pos_terminal",
+    "brand": "RedPOS",
+    "price_try": 11900,
+    "stock_qty": 0,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 12,
+    "warranty_months": 24,
+    "tags": [
+      "android",
+      "wifi",
+      "magaza"
+    ],
+    "aliases": {
+      "tr": [
+        "wifi el terminali",
+        "android terminal wifi"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-230",
+      "PRD-POS-210"
+    ],
+    "notes": "Out of stock; tests should not recommend by default."
+  },
+  {
+    "product_id": "PRD-POS-230",
+    "sku": "TBR-POS-230",
+    "name_tr": "BluePOS Lite WiFi El Terminali",
+    "category": "pos_terminal",
+    "brand": "BluePOS",
+    "price_try": 9800,
+    "stock_qty": 15,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 18,
+    "tags": [
+      "android",
+      "wifi",
+      "ekonomik"
+    ],
+    "aliases": {
+      "tr": [
+        "uygun fiyatlı el terminali",
+        "wifi terminal"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-210"
+    ],
+    "notes": "Store-only WiFi terminal."
+  },
+  {
+    "product_id": "PRD-PRN-310",
+    "sku": "TBR-PRN-310",
+    "name_tr": "RedPrint 58 Termal Fiş Yazıcı",
+    "category": "receipt_printer",
+    "brand": "RedPrint",
+    "price_try": 4250,
+    "stock_qty": 12,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 24,
+    "tags": [
+      "58mm",
+      "usb",
+      "fis"
+    ],
+    "aliases": {
+      "tr": [
+        "fiş yazıcı",
+        "58mm yazıcı",
+        "termal yazıcı"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-320"
+    ],
+    "notes": "Low-cost USB printer."
+  },
+  {
+    "product_id": "PRD-PRN-320",
+    "sku": "TBR-PRN-320",
+    "name_tr": "BluePrint 80 Ethernet Fiş Yazıcı",
+    "category": "receipt_printer",
+    "brand": "BluePrint",
+    "price_try": 7350,
+    "stock_qty": 6,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 24,
+    "tags": [
+      "80mm",
+      "ethernet",
+      "fis"
+    ],
+    "aliases": {
+      "tr": [
+        "ethernet fiş yazıcı",
+        "80mm yazıcı"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-310"
+    ],
+    "notes": "Network printer. Existing quote item in Q-1003."
+  },
+  {
+    "product_id": "PRD-PRN-330",
+    "sku": "TBR-PRN-330",
+    "name_tr": "BluePrint Mobile Bluetooth Yazıcı",
+    "category": "receipt_printer",
+    "brand": "BluePrint",
+    "price_try": 8900,
+    "stock_qty": 0,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 14,
+    "warranty_months": 24,
+    "tags": [
+      "mobil",
+      "bluetooth",
+      "saha"
+    ],
+    "aliases": {
+      "tr": [
+        "mobil fiş yazıcı",
+        "bluetooth yazıcı"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-320",
+      "PRD-PRN-310"
+    ],
+    "notes": "Out of stock; useful for refusal/alternative tests."
+  },
+  {
+    "product_id": "PRD-LBL-410",
+    "sku": "TBR-LBL-410",
+    "name_tr": "BlueLabel 203 Barkod Etiket Yazıcı",
+    "category": "label_printer",
+    "brand": "BlueLabel",
+    "price_try": 11200,
+    "stock_qty": 11,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 24,
+    "tags": [
+      "etiket",
+      "203dpi",
+      "depo"
+    ],
+    "aliases": {
+      "tr": [
+        "etiket yazıcı",
+        "barkod etiketi",
+        "203dpi"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-LBL-420"
+    ],
+    "notes": "Default label printer."
+  },
+  {
+    "product_id": "PRD-LBL-420",
+    "sku": "TBR-LBL-420",
+    "name_tr": "RedLabel Pro 300dpi Etiket Yazıcı",
+    "category": "label_printer",
+    "brand": "RedLabel",
+    "price_try": 16800,
+    "stock_qty": 5,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 36,
+    "tags": [
+      "etiket",
+      "300dpi",
+      "profesyonel"
+    ],
+    "aliases": {
+      "tr": [
+        "300dpi etiket yazıcı",
+        "yüksek çözünürlük etiket"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-LBL-410"
+    ],
+    "notes": "High-resolution label printer."
+  },
+  {
+    "product_id": "PRD-SW-510",
+    "sku": "TBR-SW-510",
+    "name_tr": "BlueStock Starter Lisans 12 Ay",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 5900,
+    "stock_qty": 999,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 12,
+    "tags": [
+      "stok",
+      "lisans",
+      "starter"
+    ],
+    "aliases": {
+      "tr": [
+        "stok programı",
+        "starter lisans",
+        "depo yazılımı"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-520"
+    ],
+    "notes": "Basic inventory license."
+  },
+  {
+    "product_id": "PRD-SW-520",
+    "sku": "TBR-SW-520",
+    "name_tr": "BlueStock Pro Lisans 12 Ay",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 14900,
+    "stock_qty": 999,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 12,
+    "tags": [
+      "stok",
+      "lisans",
+      "pro",
+      "offline"
+    ],
+    "aliases": {
+      "tr": [
+        "offline stok lisansı",
+        "pro lisans",
+        "saha senkron"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-510",
+      "PRD-SW-530"
+    ],
+    "notes": "Required for offline field synchronization."
+  },
+  {
+    "product_id": "PRD-SW-530",
+    "sku": "TBR-SW-530",
+    "name_tr": "BlueStock Şubeler Arası Senkron Modülü",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 9900,
+    "stock_qty": 999,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 12,
+    "tags": [
+      "senkron",
+      "sube",
+      "modul"
+    ],
+    "aliases": {
+      "tr": [
+        "şube senkron",
+        "çok şube modülü"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-520"
+    ],
+    "notes": "Optional module for multi-branch retailers."
+  },
+  {
+    "product_id": "PRD-KIT-610",
+    "sku": "TBR-KIT-610",
+    "name_tr": "Depo Başlangıç Kiti",
+    "category": "bundle",
+    "brand": "The Blue Red",
+    "price_try": 27900,
+    "stock_qty": 3,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 24,
+    "tags": [
+      "depo",
+      "kit",
+      "barkod",
+      "yazici"
+    ],
+    "aliases": {
+      "tr": [
+        "depo kiti",
+        "başlangıç kiti"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Bundle containing scanner, label printer and starter license."
+  },
+  {
+    "product_id": "PRD-KIT-620",
+    "sku": "TBR-KIT-620",
+    "name_tr": "Saha Satış Kiti",
+    "category": "bundle",
+    "brand": "The Blue Red",
+    "price_try": 32900,
+    "stock_qty": 2,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 24,
+    "tags": [
+      "saha",
+      "kit",
+      "terminal",
+      "lisans"
+    ],
+    "aliases": {
+      "tr": [
+        "saha satış kiti",
+        "mobil satış paketi"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Bundle for field sales operations."
+  },
+  {
+    "product_id": "PRD-ACC-710",
+    "sku": "TBR-ACC-710",
+    "name_tr": "Koruyucu Silikon Kılıf",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 950,
+    "stock_qty": 50,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 1,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "kilif",
+      "terminal"
+    ],
+    "aliases": {
+      "tr": [
+        "kılıf",
+        "koruyucu kılıf"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Accessory discount applies at qty >= 5."
+  },
+  {
+    "product_id": "PRD-ACC-720",
+    "sku": "TBR-ACC-720",
+    "name_tr": "Yedek Batarya 5000mAh",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1450,
+    "stock_qty": 2,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 1,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "batarya",
+      "terminal"
+    ],
+    "aliases": {
+      "tr": [
+        "yedek batarya",
+        "pil"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Low stock; useful for stock warning tests."
+  },
+  {
+    "product_id": "PRD-ACC-730",
+    "sku": "TBR-ACC-730",
+    "name_tr": "Araç Şarj Adaptörü",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1100,
+    "stock_qty": 0,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 9,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "arac",
+      "sarj"
+    ],
+    "aliases": {
+      "tr": [
+        "araç şarj",
+        "oto şarj"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-ACC-740"
+    ],
+    "notes": "Out of stock; replace with USB-C fast charger if acceptable."
+  },
+  {
+    "product_id": "PRD-ACC-740",
+    "sku": "TBR-ACC-740",
+    "name_tr": "USB-C Hızlı Şarj Adaptörü",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 890,
+    "stock_qty": 30,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 1,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "usb-c",
+      "sarj"
+    ],
+    "aliases": {
+      "tr": [
+        "usb-c şarj",
+        "hızlı şarj"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-ACC-730"
+    ],
+    "notes": "In-stock alternative for vehicle charger."
+  },
+  {
+    "product_id": "PRD-SVC-810",
+    "sku": "TBR-SVC-810",
+    "name_tr": "Yerinde Kurulum Hizmeti",
+    "category": "service",
+    "brand": "The Blue Red",
+    "price_try": 4500,
+    "stock_qty": 999,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 5,
+    "warranty_months": 0,
+    "tags": [
+      "kurulum",
+      "servis"
+    ],
+    "aliases": {
+      "tr": [
+        "kurulum",
+        "yerinde kurulum"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SVC-820"
+    ],
+    "notes": "Scheduled service. Cite service policy before promising date."
+  },
+  {
+    "product_id": "PRD-SVC-820",
+    "sku": "TBR-SVC-820",
+    "name_tr": "Acil Kurulum Hizmeti",
+    "category": "service",
+    "brand": "The Blue Red",
+    "price_try": 7900,
+    "stock_qty": 2,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 1,
+    "warranty_months": 0,
+    "tags": [
+      "kurulum",
+      "acil",
+      "servis"
+    ],
+    "aliases": {
+      "tr": [
+        "acil kurulum",
+        "hızlı kurulum"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SVC-810"
+    ],
+    "notes": "Only Istanbul and Ankara on weekdays."
+  },
+  {
+    "product_id": "PRD-BC-100-PLUS",
+    "sku": "TBR-BC-100-PLUS",
+    "name_tr": "BlueScan Lite 1D USB Barkod Okuyucu Plus",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 2890,
+    "stock_qty": 50,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 36,
+    "tags": [
+      "1d",
+      "genisletilmis",
+      "giris",
+      "kablolu",
+      "plus",
+      "usb"
+    ],
+    "aliases": {
+      "tr": [
+        "barkod okuyucu",
+        "kablolu okuyucu",
+        "1d scanner",
+        "BlueScan Lite 1D USB Barkod Okuyucu plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110-PLUS",
+      "PRD-BC-140-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-BC-100."
+  },
+  {
+    "product_id": "PRD-BC-110-PLUS",
+    "sku": "TBR-BC-110-PLUS",
+    "name_tr": "BlueScan Air 2D Bluetooth Barkod Okuyucu Plus",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 9430,
+    "stock_qty": 24,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 36,
+    "tags": [
+      "2d",
+      "bluetooth",
+      "genisletilmis",
+      "kablosuz",
+      "plus",
+      "qr"
+    ],
+    "aliases": {
+      "tr": [
+        "kablosuz barkod okuyucu",
+        "qr okuyucu",
+        "2d scanner",
+        "BlueScan Air 2D Bluetooth Barkod Okuyucu plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-120-PLUS",
+      "PRD-BC-140-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-BC-110."
+  },
+  {
+    "product_id": "PRD-BC-120-PLUS",
+    "sku": "TBR-BC-120-PLUS",
+    "name_tr": "BlueScan Pro Rugged 2D Endüstriyel Okuyucu Plus",
+    "category": "barcode_scanner",
+    "brand": "BlueScan",
+    "price_try": 15280,
+    "stock_qty": 10,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 48,
+    "tags": [
+      "2d",
+      "depo",
+      "endustriyel",
+      "genisletilmis",
+      "plus",
+      "rugged"
+    ],
+    "aliases": {
+      "tr": [
+        "endüstriyel okuyucu",
+        "dayanıklı scanner",
+        "rugged okuyucu",
+        "BlueScan Pro Rugged 2D Endüstriyel Okuyucu plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110-PLUS",
+      "PRD-BC-140-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-BC-120."
+  },
+  {
+    "product_id": "PRD-BC-130-PLUS",
+    "sku": "TBR-BC-130-PLUS",
+    "name_tr": "RedScan Mini Pocket 2D Okuyucu Plus",
+    "category": "barcode_scanner",
+    "brand": "RedScan",
+    "price_try": 7960,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 11,
+    "warranty_months": 36,
+    "tags": [
+      "2d",
+      "bluetooth",
+      "cep",
+      "genisletilmis",
+      "plus",
+      "pocket"
+    ],
+    "aliases": {
+      "tr": [
+        "cep tipi okuyucu",
+        "mini scanner",
+        "pocket okuyucu",
+        "RedScan Mini Pocket 2D Okuyucu plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-140-PLUS",
+      "PRD-BC-110-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-BC-130."
+  },
+  {
+    "product_id": "PRD-BC-140-PLUS",
+    "sku": "TBR-BC-140-PLUS",
+    "name_tr": "GreenScan Eco 1D Kablosuz Okuyucu Plus",
+    "category": "barcode_scanner",
+    "brand": "GreenScan",
+    "price_try": 6310,
+    "stock_qty": 26,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 30,
+    "tags": [
+      "1d",
+      "ekonomik",
+      "genisletilmis",
+      "kablosuz",
+      "plus"
+    ],
+    "aliases": {
+      "tr": [
+        "ucuz kablosuz okuyucu",
+        "ekonomik scanner",
+        "GreenScan Eco 1D Kablosuz Okuyucu plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-BC-110-PLUS",
+      "PRD-BC-100-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-BC-140."
+  },
+  {
+    "product_id": "PRD-POS-210-PLUS",
+    "sku": "TBR-POS-210-PLUS",
+    "name_tr": "BluePOS Android El Terminali 4G Plus",
+    "category": "pos_terminal",
+    "brand": "BluePOS",
+    "price_try": 21540,
+    "stock_qty": 13,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 36,
+    "tags": [
+      "4g",
+      "android",
+      "genisletilmis",
+      "offline",
+      "plus",
+      "saha"
+    ],
+    "aliases": {
+      "tr": [
+        "4g el terminali",
+        "saha satış terminali",
+        "android terminal",
+        "BluePOS Android El Terminali 4G plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-230-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-POS-210."
+  },
+  {
+    "product_id": "PRD-POS-220-PLUS",
+    "sku": "TBR-POS-220-PLUS",
+    "name_tr": "RedPOS Android El Terminali WiFi Plus",
+    "category": "pos_terminal",
+    "brand": "RedPOS",
+    "price_try": 14040,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 13,
+    "warranty_months": 36,
+    "tags": [
+      "android",
+      "genisletilmis",
+      "magaza",
+      "plus",
+      "wifi"
+    ],
+    "aliases": {
+      "tr": [
+        "wifi el terminali",
+        "android terminal wifi",
+        "RedPOS Android El Terminali WiFi plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-230-PLUS",
+      "PRD-POS-210-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-POS-220."
+  },
+  {
+    "product_id": "PRD-POS-230-PLUS",
+    "sku": "TBR-POS-230-PLUS",
+    "name_tr": "BluePOS Lite WiFi El Terminali Plus",
+    "category": "pos_terminal",
+    "brand": "BluePOS",
+    "price_try": 11560,
+    "stock_qty": 21,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 30,
+    "tags": [
+      "android",
+      "ekonomik",
+      "genisletilmis",
+      "plus",
+      "wifi"
+    ],
+    "aliases": {
+      "tr": [
+        "uygun fiyatlı el terminali",
+        "wifi terminal",
+        "BluePOS Lite WiFi El Terminali plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-POS-210-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-POS-230."
+  },
+  {
+    "product_id": "PRD-PRN-310-PLUS",
+    "sku": "TBR-PRN-310-PLUS",
+    "name_tr": "RedPrint 58 Termal Fiş Yazıcı Plus",
+    "category": "receipt_printer",
+    "brand": "RedPrint",
+    "price_try": 5020,
+    "stock_qty": 18,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 36,
+    "tags": [
+      "58mm",
+      "fis",
+      "genisletilmis",
+      "plus",
+      "usb"
+    ],
+    "aliases": {
+      "tr": [
+        "fiş yazıcı",
+        "58mm yazıcı",
+        "termal yazıcı",
+        "RedPrint 58 Termal Fiş Yazıcı plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-320-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-PRN-310."
+  },
+  {
+    "product_id": "PRD-PRN-320-PLUS",
+    "sku": "TBR-PRN-320-PLUS",
+    "name_tr": "BluePrint 80 Ethernet Fiş Yazıcı Plus",
+    "category": "receipt_printer",
+    "brand": "BluePrint",
+    "price_try": 8670,
+    "stock_qty": 12,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 3,
+    "warranty_months": 36,
+    "tags": [
+      "80mm",
+      "ethernet",
+      "fis",
+      "genisletilmis",
+      "plus"
+    ],
+    "aliases": {
+      "tr": [
+        "ethernet fiş yazıcı",
+        "80mm yazıcı",
+        "BluePrint 80 Ethernet Fiş Yazıcı plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-310-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-PRN-320."
+  },
+  {
+    "product_id": "PRD-PRN-330-PLUS",
+    "sku": "TBR-PRN-330-PLUS",
+    "name_tr": "BluePrint Mobile Bluetooth Yazıcı Plus",
+    "category": "receipt_printer",
+    "brand": "BluePrint",
+    "price_try": 10500,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 15,
+    "warranty_months": 36,
+    "tags": [
+      "bluetooth",
+      "genisletilmis",
+      "mobil",
+      "plus",
+      "saha"
+    ],
+    "aliases": {
+      "tr": [
+        "mobil fiş yazıcı",
+        "bluetooth yazıcı",
+        "BluePrint Mobile Bluetooth Yazıcı plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-PRN-320-PLUS",
+      "PRD-PRN-310-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-PRN-330."
+  },
+  {
+    "product_id": "PRD-LBL-410-PLUS",
+    "sku": "TBR-LBL-410-PLUS",
+    "name_tr": "BlueLabel 203 Barkod Etiket Yazıcı Plus",
+    "category": "label_printer",
+    "brand": "BlueLabel",
+    "price_try": 13220,
+    "stock_qty": 17,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 4,
+    "warranty_months": 36,
+    "tags": [
+      "203dpi",
+      "depo",
+      "etiket",
+      "genisletilmis",
+      "plus"
+    ],
+    "aliases": {
+      "tr": [
+        "etiket yazıcı",
+        "barkod etiketi",
+        "203dpi",
+        "BlueLabel 203 Barkod Etiket Yazıcı plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-LBL-420-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-LBL-410."
+  },
+  {
+    "product_id": "PRD-LBL-420-PLUS",
+    "sku": "TBR-LBL-420-PLUS",
+    "name_tr": "RedLabel Pro 300dpi Etiket Yazıcı Plus",
+    "category": "label_printer",
+    "brand": "RedLabel",
+    "price_try": 19820,
+    "stock_qty": 11,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 5,
+    "warranty_months": 48,
+    "tags": [
+      "300dpi",
+      "etiket",
+      "genisletilmis",
+      "plus",
+      "profesyonel"
+    ],
+    "aliases": {
+      "tr": [
+        "300dpi etiket yazıcı",
+        "yüksek çözünürlük etiket",
+        "RedLabel Pro 300dpi Etiket Yazıcı plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-LBL-410-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-LBL-420."
+  },
+  {
+    "product_id": "PRD-SW-510-PLUS",
+    "sku": "TBR-SW-510-PLUS",
+    "name_tr": "BlueStock Starter Lisans 12 Ay Plus",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 6960,
+    "stock_qty": 1005,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 24,
+    "tags": [
+      "genisletilmis",
+      "lisans",
+      "plus",
+      "starter",
+      "stok"
+    ],
+    "aliases": {
+      "tr": [
+        "stok programı",
+        "starter lisans",
+        "depo yazılımı",
+        "BlueStock Starter Lisans 12 Ay plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-520-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-SW-510."
+  },
+  {
+    "product_id": "PRD-SW-520-PLUS",
+    "sku": "TBR-SW-520-PLUS",
+    "name_tr": "BlueStock Pro Lisans 12 Ay Plus",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 17580,
+    "stock_qty": 1005,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 24,
+    "tags": [
+      "genisletilmis",
+      "lisans",
+      "offline",
+      "plus",
+      "pro",
+      "stok"
+    ],
+    "aliases": {
+      "tr": [
+        "offline stok lisansı",
+        "pro lisans",
+        "saha senkron",
+        "BlueStock Pro Lisans 12 Ay plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-510-PLUS",
+      "PRD-SW-530-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-SW-520."
+  },
+  {
+    "product_id": "PRD-SW-530-PLUS",
+    "sku": "TBR-SW-530-PLUS",
+    "name_tr": "BlueStock Şubeler Arası Senkron Modülü Plus",
+    "category": "software",
+    "brand": "BlueStock",
+    "price_try": 11680,
+    "stock_qty": 1005,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 0,
+    "warranty_months": 24,
+    "tags": [
+      "genisletilmis",
+      "modul",
+      "plus",
+      "senkron",
+      "sube"
+    ],
+    "aliases": {
+      "tr": [
+        "şube senkron",
+        "çok şube modülü",
+        "BlueStock Şubeler Arası Senkron Modülü plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SW-520-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-SW-530."
+  },
+  {
+    "product_id": "PRD-KIT-610-PLUS",
+    "sku": "TBR-KIT-610-PLUS",
+    "name_tr": "Depo Başlangıç Kiti Plus",
+    "category": "bundle",
+    "brand": "The Blue Red",
+    "price_try": 32920,
+    "stock_qty": 9,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 5,
+    "warranty_months": 36,
+    "tags": [
+      "barkod",
+      "depo",
+      "genisletilmis",
+      "kit",
+      "plus",
+      "yazici"
+    ],
+    "aliases": {
+      "tr": [
+        "depo kiti",
+        "başlangıç kiti",
+        "Depo Başlangıç Kiti plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-KIT-610."
+  },
+  {
+    "product_id": "PRD-KIT-620-PLUS",
+    "sku": "TBR-KIT-620-PLUS",
+    "name_tr": "Saha Satış Kiti Plus",
+    "category": "bundle",
+    "brand": "The Blue Red",
+    "price_try": 38820,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 5,
+    "warranty_months": 36,
+    "tags": [
+      "genisletilmis",
+      "kit",
+      "lisans",
+      "plus",
+      "saha",
+      "terminal"
+    ],
+    "aliases": {
+      "tr": [
+        "saha satış kiti",
+        "mobil satış paketi",
+        "Saha Satış Kiti plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-KIT-620."
+  },
+  {
+    "product_id": "PRD-ACC-710-PLUS",
+    "sku": "TBR-ACC-710-PLUS",
+    "name_tr": "Koruyucu Silikon Kılıf Plus",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1120,
+    "stock_qty": 56,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "genisletilmis",
+      "kilif",
+      "plus",
+      "terminal"
+    ],
+    "aliases": {
+      "tr": [
+        "kılıf",
+        "koruyucu kılıf",
+        "Koruyucu Silikon Kılıf plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-ACC-710."
+  },
+  {
+    "product_id": "PRD-ACC-720-PLUS",
+    "sku": "TBR-ACC-720-PLUS",
+    "name_tr": "Yedek Batarya 5000mAh Plus",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1710,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "batarya",
+      "genisletilmis",
+      "plus",
+      "terminal"
+    ],
+    "aliases": {
+      "tr": [
+        "yedek batarya",
+        "pil",
+        "Yedek Batarya 5000mAh plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-ACC-720."
+  },
+  {
+    "product_id": "PRD-ACC-730-PLUS",
+    "sku": "TBR-ACC-730-PLUS",
+    "name_tr": "Araç Şarj Adaptörü Plus",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1300,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 10,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "arac",
+      "genisletilmis",
+      "plus",
+      "sarj"
+    ],
+    "aliases": {
+      "tr": [
+        "araç şarj",
+        "oto şarj",
+        "Araç Şarj Adaptörü plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-ACC-740-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-ACC-730."
+  },
+  {
+    "product_id": "PRD-ACC-740-PLUS",
+    "sku": "TBR-ACC-740-PLUS",
+    "name_tr": "USB-C Hızlı Şarj Adaptörü Plus",
+    "category": "accessory",
+    "brand": "The Blue Red",
+    "price_try": 1050,
+    "stock_qty": 36,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 6,
+    "tags": [
+      "aksesuar",
+      "genisletilmis",
+      "plus",
+      "sarj",
+      "usb-c"
+    ],
+    "aliases": {
+      "tr": [
+        "usb-c şarj",
+        "hızlı şarj",
+        "USB-C Hızlı Şarj Adaptörü plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-ACC-730-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-ACC-740."
+  },
+  {
+    "product_id": "PRD-SVC-810-PLUS",
+    "sku": "TBR-SVC-810-PLUS",
+    "name_tr": "Yerinde Kurulum Hizmeti Plus",
+    "category": "service",
+    "brand": "The Blue Red",
+    "price_try": 5310,
+    "stock_qty": 1005,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 6,
+    "warranty_months": 0,
+    "tags": [
+      "genisletilmis",
+      "kurulum",
+      "plus",
+      "servis"
+    ],
+    "aliases": {
+      "tr": [
+        "kurulum",
+        "yerinde kurulum",
+        "Yerinde Kurulum Hizmeti plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SVC-820-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-SVC-810."
+  },
+  {
+    "product_id": "PRD-SVC-820-PLUS",
+    "sku": "TBR-SVC-820-PLUS",
+    "name_tr": "Acil Kurulum Hizmeti Plus",
+    "category": "service",
+    "brand": "The Blue Red",
+    "price_try": 9320,
+    "stock_qty": 8,
+    "active": true,
+    "min_order_qty": 1,
+    "delivery_days": 2,
+    "warranty_months": 0,
+    "tags": [
+      "acil",
+      "genisletilmis",
+      "kurulum",
+      "plus",
+      "servis"
+    ],
+    "aliases": {
+      "tr": [
+        "acil kurulum",
+        "hızlı kurulum",
+        "Acil Kurulum Hizmeti plus",
+        "plus model"
+      ]
+    },
+    "substitute_product_ids": [
+      "PRD-SVC-810-PLUS"
+    ],
+    "notes": "Daha büyük müşteri kurulumları için Plus varyant. Temel ürün: PRD-SVC-820."
+  }
+]
