@@ -5,8 +5,6 @@ services:
       POSTGRES_DB: tbr
       POSTGRES_USER: tbr
       POSTGRES_PASSWORD: tbr
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
