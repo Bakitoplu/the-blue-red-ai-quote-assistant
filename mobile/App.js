@@ -1,0 +1,141 @@
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+
+const API = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+function money(value) {
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
+}
+
+async function readSse(response, onEvent) {
+  const text = await response.text();
+  text.split('\n\n').forEach((chunk) => {
+    const event = chunk.match(/^event: (.+)$/m)?.[1];
+    const data = chunk.match(/^data: (.+)$/m)?.[1];
+    if (event && data) onEvent(event, JSON.parse(data));
+  });
+}
+
+export default function App() {
+  const [quoteId, setQuoteId] = useState('Q-1002');
+  const [customerId, setCustomerId] = useState('CUST-ANK-002');
+  const [quote, setQuote] = useState(null);
+  const [message, setMessage] = useState("Sahada internet olmayacak; 4G'li el terminali ve offline senkron için gereken lisansı ekle.");
+  const [answer, setAnswer] = useState('');
+  const [sources, setSources] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  async function loadQuote() {
+    const res = await fetch(`${API}/quotes/${quoteId}`);
+    setQuote(await res.json());
+  }
+
+  useEffect(() => {
+    loadQuote();
+  }, [quoteId]);
+
+  async function send() {
+    setBusy(true);
+    setAnswer('');
+    setSources([]);
+    const res = await fetch(`${API}/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quote_id: quoteId,
+        customer_id: customerId,
+        channel: 'mobile',
+        session_id: `MOB-${quoteId}`,
+        message_id: `MOB-${Date.now()}`,
+        message,
+      }),
+    });
+    await readSse(res, (event, data) => {
+      if (event === 'text_delta') setAnswer((prev) => prev + data.text);
+      if (event === 'source') setSources((prev) => Array.from(new Set([...prev, data.source_id])));
+    });
+    await loadQuote();
+    setBusy(false);
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar style="dark" />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.logo}>
+            <Text style={styles.logoText}>TBR</Text>
+          </View>
+          <View>
+            <Text style={styles.title}>The Blue Red</Text>
+            <Text style={styles.subtitle}>Mobil teklif asistanı</Text>
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <TextInput style={styles.input} value={quoteId} onChangeText={setQuoteId} />
+          <TouchableOpacity style={styles.iconButton} onPress={loadQuote}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <TextInput style={styles.input} value={customerId} onChangeText={setCustomerId} />
+
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Teklif</Text>
+          <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
+          {(quote?.items || []).map((item) => (
+            <View key={item.quote_item_id} style={[styles.line, item.status !== 'active' && styles.inactive]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.product}>{item.name_tr}</Text>
+                <Text style={styles.meta}>{item.product_id} · {item.status}</Text>
+              </View>
+              <Text style={styles.qty}>{item.quantity}x</Text>
+              <Text style={styles.amount}>{money(item.line_total_try)}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Chat</Text>
+          <TextInput style={styles.message} value={message} onChangeText={setMessage} multiline />
+          <TouchableOpacity style={[styles.primary, busy && styles.disabled]} onPress={send} disabled={busy}>
+            <Ionicons name="send" size={18} color="#fff" />
+            <Text style={styles.primaryText}>Gönder</Text>
+          </TouchableOpacity>
+          <Text style={styles.answer}>{answer || 'Yanıt burada görünür.'}</Text>
+          <Text style={styles.sources}>{sources.join(', ')}</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f4f7f8' },
+  container: { padding: 18, gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  logo: { width: 48, height: 48, borderRadius: 6, backgroundColor: '#d64045', alignItems: 'center', justifyContent: 'center' },
+  logoText: { color: '#fff', fontWeight: '800' },
+  title: { fontSize: 22, fontWeight: '800', color: '#172026' },
+  subtitle: { color: '#60737c', marginTop: 2 },
+  row: { flexDirection: 'row', gap: 10 },
+  input: { flex: 1, minHeight: 44, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, paddingHorizontal: 12 },
+  iconButton: { width: 48, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#294047' },
+  panel: { backgroundColor: '#fff', borderColor: '#d9e3e7', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
+  panelTitle: { fontSize: 16, fontWeight: '800', color: '#172026' },
+  total: { fontSize: 24, fontWeight: '800', color: '#0f766e' },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopColor: '#eef3f5', borderTopWidth: 1 },
+  inactive: { opacity: 0.5 },
+  product: { fontWeight: '700', color: '#172026' },
+  meta: { color: '#60737c', marginTop: 3 },
+  qty: { width: 34, fontWeight: '700' },
+  amount: { width: 90, textAlign: 'right', fontWeight: '700' },
+  message: { minHeight: 110, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, padding: 12, textAlignVertical: 'top' },
+  primary: { minHeight: 44, borderRadius: 6, backgroundColor: '#0f766e', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  primaryText: { color: '#fff', fontWeight: '800' },
+  disabled: { opacity: 0.6 },
+  answer: { backgroundColor: '#eef7f5', borderRadius: 6, padding: 12, lineHeight: 20, color: '#172026' },
+  sources: { color: '#60737c' },
+});

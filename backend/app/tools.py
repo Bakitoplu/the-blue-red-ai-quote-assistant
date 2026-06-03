@@ -109,7 +109,7 @@ def get_knowledge_entries(db: Session, req: KnowledgeRequest) -> ToolResult:
         score = 10 if req.topic and entry.topic == req.topic else 0
         score += sum(1 for term in re.split(r"\W+", q) if term and term in text)
         ranked.append((score, entry))
-    ranked.sort(key=lambda x: (x[0], x[1].knowledge_id.endswith("-SUP")), reverse=True)
+    ranked.sort(key=lambda x: (x[0], not x[1].knowledge_id.endswith("-SUP")), reverse=True)
     selected = [e for _, e in ranked[: req.limit]]
     data = [
         {

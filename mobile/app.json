@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "The Blue Red Quote Assistant",
+    "slug": "the-blue-red-quote-assistant",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
+
