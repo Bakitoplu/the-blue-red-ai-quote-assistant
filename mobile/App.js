@@ -25,18 +25,20 @@ async function readSse(response, onEvent) {
 }
 
 export default function App() {
-  const [quoteId, setQuoteId] = useState('Q-1002');
-  const [customerId, setCustomerId] = useState('CUST-ANK-002');
+  const [loggedCustomer, setLoggedCustomer] = useState(null);
+  const [loginCustomerId, setLoginCustomerId] = useState('CUST-ANK-002');
+  const [loginError, setLoginError] = useState('');
+  const [quoteId, setQuoteId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [quote, setQuote] = useState(null);
-  const [customers, setCustomers] = useState([]);
   const [customerQuotes, setCustomerQuotes] = useState([]);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
   const [busy, setBusy] = useState(false);
-  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [quotePickerOpen, setQuotePickerOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
+  const [viewMode, setViewMode] = useState('chat');
 
   async function loadQuote() {
     if (!quoteId) {
@@ -45,11 +47,6 @@ export default function App() {
     }
     const res = await fetch(`${API}/quotes/${quoteId}`);
     setQuote(await res.json());
-  }
-
-  async function loadCustomers() {
-    const res = await fetch(`${API}/customers`);
-    setCustomers(await res.json());
   }
 
   async function loadCustomerQuotes(nextCustomerId = customerId) {
@@ -64,17 +61,14 @@ export default function App() {
   }
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  useEffect(() => {
+    if (!loggedCustomer) return;
     loadCustomerQuotes(customerId).then((quotes) => {
       if (quoteId && !quotes.some((item) => item.quote_id === quoteId)) {
         setQuoteId('');
         setQuote(null);
       }
     });
-  }, [customerId]);
+  }, [customerId, loggedCustomer]);
 
   useEffect(() => {
     loadQuote();
@@ -84,7 +78,7 @@ export default function App() {
     const trimmed = message.trim();
     if (!trimmed || busy) return;
     if (!customerId || !quoteId) {
-      setMessages((prev) => [...prev, { id: `warn-${Date.now()}`, role: 'assistant', text: 'Lütfen önce müşteri ve teklif seçin.', sources: [] }]);
+      setMessages((prev) => [...prev, { id: `warn-${Date.now()}`, role: 'assistant', text: 'Lütfen teklif seçin veya yeni teklif oluşturun.', sources: [] }]);
       return;
     }
     setBusy(true);
@@ -121,21 +115,33 @@ export default function App() {
     await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control' }),
+      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control', customer_id: customerId }),
     });
     await loadQuote();
-  }
-
-  function selectCustomer(nextCustomerId) {
-    setCustomerId(nextCustomerId);
-    setQuoteId('');
-    setQuote(null);
-    setCustomerPickerOpen(false);
   }
 
   function selectQuote(nextQuoteId) {
     setQuoteId(nextQuoteId);
     setQuotePickerOpen(false);
+  }
+
+  async function loginCustomer(nextCustomerId = loginCustomerId) {
+    const trimmed = nextCustomerId.trim();
+    if (!trimmed) return;
+    setLoginError('');
+    const res = await fetch(`${API}/customers/${trimmed}`);
+    if (!res.ok) {
+      setLoginError('Müşteri bulunamadı.');
+      return;
+    }
+    const customer = await res.json();
+    setLoggedCustomer(customer);
+    setCustomerId(customer.customer_id);
+    setQuoteId('');
+    setQuote(null);
+    setViewMode('chat');
+    const quotes = await loadCustomerQuotes(customer.customer_id);
+    if (quotes.length === 1) setQuoteId(quotes[0].quote_id);
   }
 
   async function createCustomer() {
@@ -146,12 +152,14 @@ export default function App() {
       body: JSON.stringify(newCustomer),
     });
     const created = await res.json();
-    await loadCustomers();
+    setLoggedCustomer(created);
     setCustomerId(created.customer_id);
     setQuoteId('');
     setQuote(null);
+    setCustomerQuotes([]);
     setNewCustomer({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
     setCustomerFormOpen(false);
+    setViewMode('chat');
   }
 
   async function createQuote() {
@@ -165,9 +173,45 @@ export default function App() {
     await loadCustomerQuotes(customerId);
     setQuoteId(created.quote_id);
     setQuote(created);
+    setViewMode('quotes');
   }
 
-  const selectedCustomer = customers.find((customer) => customer.customer_id === customerId);
+  if (!loggedCustomer) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.header}>
+            <View style={styles.logo}>
+              <Text style={styles.logoText}>TBR</Text>
+            </View>
+            <View>
+              <Text style={styles.title}>The Blue Red</Text>
+              <Text style={styles.subtitle}>Mobil teklif asistanı</Text>
+            </View>
+          </View>
+          <View style={styles.panel}>
+            <Text style={styles.panelTitle}>Müşteri Girişi</Text>
+            <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
+            {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
+            <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
+              <Text style={styles.primaryActionText}>Giriş yap</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryAction} onPress={() => setCustomerFormOpen(true)}>
+              <Text style={styles.secondaryActionText}>Yeni müşteri ekle</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+        <CustomerFormModal
+          visible={customerFormOpen}
+          newCustomer={newCustomer}
+          setNewCustomer={setNewCustomer}
+          onClose={() => setCustomerFormOpen(false)}
+          onCreate={createCustomer}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -179,25 +223,14 @@ export default function App() {
           </View>
           <View>
             <Text style={styles.title}>The Blue Red</Text>
-            <Text style={styles.subtitle}>Mobil teklif asistanı</Text>
+            <Text style={styles.subtitle}>{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</Text>
           </View>
-        </View>
-
-        <View style={styles.selectorRow}>
-          <TouchableOpacity style={styles.selectBox} onPress={() => setCustomerPickerOpen(true)}>
-            <Text style={styles.selectLabel}>Müşteri</Text>
-            <View style={styles.selectValueRow}>
-              <Text style={styles.selectValue}>{selectedCustomer?.name || customerId || 'Müşteri seçin'}</Text>
-              <Ionicons name="chevron-down" size={18} color="#455a64" />
-            </View>
-            <Text style={styles.selectMeta}>{selectedCustomer ? customerLabel(selectedCustomer) : 'Mevcut müşterilerden seçin'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setCustomerFormOpen(true)}>
-            <Ionicons name="person-add" size={20} color="#fff" />
+          <TouchableOpacity style={styles.headerAction} onPress={() => setViewMode(viewMode === 'chat' ? 'quotes' : 'chat')}>
+            <Text style={styles.headerActionText}>{viewMode === 'chat' ? 'Teklifler' : 'Sohbet'}</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.selectorRow}>
+        {viewMode === 'quotes' && <View style={styles.selectorRow}>
           <TouchableOpacity style={[styles.selectBox, !customerId && styles.disabled]} onPress={() => customerId && setQuotePickerOpen(true)} disabled={!customerId}>
             <Text style={styles.selectLabel}>Teklif</Text>
             <View style={styles.selectValueRow}>
@@ -209,9 +242,9 @@ export default function App() {
           <TouchableOpacity style={[styles.iconButton, !customerId && styles.disabled]} onPress={createQuote} disabled={!customerId}>
             <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
-        </View>
+        </View>}
 
-        <View style={styles.panel}>
+        {viewMode === 'quotes' && <View style={styles.panel}>
           <Text style={styles.panelTitle}>Teklif</Text>
           <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
           {(quote?.items || []).map((item) => (
@@ -232,9 +265,9 @@ export default function App() {
               <Text style={styles.amount}>{money(item.line_total_try)}</Text>
             </View>
           ))}
-        </View>
+        </View>}
 
-        <View style={styles.panel}>
+        {viewMode === 'chat' && <View style={styles.panel}>
           <Text style={styles.panelTitle}>Sohbet</Text>
           <View style={styles.messages}>
             {messages.length === 0 && <Text style={styles.empty}>Ürün, stok, garanti, teslimat veya teklifiniz hakkında yazabilirsiniz.</Text>}
@@ -258,23 +291,8 @@ export default function App() {
               <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
-        </View>
+        </View>}
       </ScrollView>
-
-      <Modal visible={customerPickerOpen} transparent animationType="fade" onRequestClose={() => setCustomerPickerOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={() => setCustomerPickerOpen(false)} />
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Müşteri Seç</Text>
-            {customers.map((customer) => (
-              <TouchableOpacity key={customer.customer_id} style={[styles.quoteOption, customer.customer_id === customerId && styles.quoteOptionActive]} onPress={() => selectCustomer(customer.customer_id)}>
-                <Text style={styles.quoteOptionId}>{customer.name}</Text>
-                <Text style={styles.quoteOptionCustomer}>{customerLabel(customer)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={quotePickerOpen} transparent animationType="fade" onRequestClose={() => setQuotePickerOpen(false)}>
         <View style={styles.modalBackdrop}>
@@ -292,30 +310,13 @@ export default function App() {
         </View>
       </Modal>
 
-      <Modal visible={customerFormOpen} transparent animationType="fade" onRequestClose={() => setCustomerFormOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={() => setCustomerFormOpen(false)} />
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Yeni Müşteri</Text>
-            <TextInput style={styles.formInput} placeholder="Müşteri adı" value={newCustomer.name} onChangeText={(text) => setNewCustomer({ ...newCustomer, name: text })} />
-            <TextInput style={styles.formInput} placeholder="Şehir" value={newCustomer.city} onChangeText={(text) => setNewCustomer({ ...newCustomer, city: text })} />
-            <View style={styles.segmented}>
-              {['standard', 'partner'].map((tier) => (
-                <TouchableOpacity key={tier} style={[styles.segmentButton, newCustomer.price_tier === tier && styles.segmentButtonActive]} onPress={() => setNewCustomer({ ...newCustomer, price_tier: tier })}>
-                  <Text style={newCustomer.price_tier === tier ? styles.segmentTextActive : styles.segmentText}>{tier}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity style={styles.checkRow} onPress={() => setNewCustomer({ ...newCustomer, allow_backorder: !newCustomer.allow_backorder })}>
-              <Ionicons name={newCustomer.allow_backorder ? 'checkbox' : 'square-outline'} size={20} color="#0f766e" />
-              <Text>Backorder uygun</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={createCustomer} disabled={!newCustomer.name.trim()}>
-              <Text style={styles.primaryActionText}>Müşteri Ekle</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <CustomerFormModal
+        visible={customerFormOpen}
+        newCustomer={newCustomer}
+        setNewCustomer={setNewCustomer}
+        onClose={() => setCustomerFormOpen(false)}
+        onCreate={createCustomer}
+      />
     </SafeAreaView>
   );
 }
@@ -333,6 +334,35 @@ function SourceList({ sources }) {
   );
 }
 
+function CustomerFormModal({ visible, newCustomer, setNewCustomer, onClose, onCreate }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={onClose} />
+        <View style={styles.modalSheet}>
+          <Text style={styles.modalTitle}>Yeni Müşteri</Text>
+          <TextInput style={styles.formInput} placeholder="Müşteri adı" value={newCustomer.name} onChangeText={(text) => setNewCustomer({ ...newCustomer, name: text })} />
+          <TextInput style={styles.formInput} placeholder="Şehir" value={newCustomer.city} onChangeText={(text) => setNewCustomer({ ...newCustomer, city: text })} />
+          <View style={styles.segmented}>
+            {['standard', 'partner'].map((tier) => (
+              <TouchableOpacity key={tier} style={[styles.segmentButton, newCustomer.price_tier === tier && styles.segmentButtonActive]} onPress={() => setNewCustomer({ ...newCustomer, price_tier: tier })}>
+                <Text style={newCustomer.price_tier === tier ? styles.segmentTextActive : styles.segmentText}>{tier}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={styles.checkRow} onPress={() => setNewCustomer({ ...newCustomer, allow_backorder: !newCustomer.allow_backorder })}>
+            <Ionicons name={newCustomer.allow_backorder ? 'checkbox' : 'square-outline'} size={20} color="#0f766e" />
+            <Text>Backorder uygun</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={onCreate} disabled={!newCustomer.name.trim()}>
+            <Text style={styles.primaryActionText}>Müşteri Ekle</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f4f7f8' },
   container: { paddingHorizontal: 18, paddingBottom: 18, paddingTop: Platform.OS === 'android' ? (NativeStatusBar.currentHeight || 0) + 18 : 34, gap: 14 },
@@ -341,6 +371,8 @@ const styles = StyleSheet.create({
   logoText: { color: '#fff', fontWeight: '800' },
   title: { fontSize: 22, fontWeight: '800', color: '#172026' },
   subtitle: { color: '#60737c', marginTop: 2 },
+  headerAction: { marginLeft: 'auto', minHeight: 38, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#294047', alignItems: 'center', justifyContent: 'center' },
+  headerActionText: { color: '#fff', fontWeight: '800' },
   row: { flexDirection: 'row', gap: 10 },
   input: { flex: 1, minHeight: 44, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, paddingHorizontal: 12 },
   iconButton: { width: 48, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#294047' },
@@ -392,5 +424,8 @@ const styles = StyleSheet.create({
   checkRow: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8 },
   primaryAction: { minHeight: 44, borderRadius: 8, backgroundColor: '#0f766e', alignItems: 'center', justifyContent: 'center' },
   primaryActionText: { color: '#fff', fontWeight: '800' },
+  secondaryAction: { minHeight: 44, borderRadius: 8, backgroundColor: '#eef3f5', alignItems: 'center', justifyContent: 'center' },
+  secondaryActionText: { color: '#172026', fontWeight: '800' },
+  errorText: { color: '#b42318' },
   disabled: { opacity: 0.6 },
 });

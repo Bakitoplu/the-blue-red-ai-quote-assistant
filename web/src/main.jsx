@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RefreshCw, Send, Database, ScrollText, Package, BookOpen, Save, ChevronDown } from 'lucide-react';
+import { RefreshCw, Send, Database, Package, BookOpen, Save, ChevronDown } from 'lucide-react';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -35,14 +35,15 @@ async function readSse(response, onEvent) {
 
 function App() {
   const [tab, setTab] = useState('chat');
-  const [quoteId, setQuoteId] = useState('Q-1002');
-  const [customerId, setCustomerId] = useState('CUST-ANK-002');
+  const [loggedCustomer, setLoggedCustomer] = useState(null);
+  const [loginCustomerId, setLoginCustomerId] = useState('CUST-ANK-002');
+  const [loginError, setLoginError] = useState('');
+  const [quoteId, setQuoteId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [quote, setQuote] = useState(null);
-  const [customers, setCustomers] = useState([]);
   const [customerQuotes, setCustomerQuotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
-  const [logs, setLogs] = useState([]);
   const [productForm, setProductForm] = useState(null);
   const [knowledgeForm, setKnowledgeForm] = useState(null);
   const [message, setMessage] = useState('');
@@ -59,11 +60,6 @@ function App() {
     }
     const res = await fetch(`${API}/quotes/${quoteId}`);
     setQuote(await res.json());
-  }
-
-  async function loadCustomers() {
-    const res = await fetch(`${API}/customers`);
-    setCustomers(await res.json());
   }
 
   async function loadCustomerQuotes(nextCustomerId = customerId) {
@@ -87,26 +83,20 @@ function App() {
     setKnowledge(await res.json());
   }
 
-  async function loadLogs() {
-    const res = await fetch(`${API}/tool-call-logs`);
-    setLogs(await res.json());
-  }
-
   useEffect(() => {
-    loadCustomers();
     loadProducts();
     loadKnowledge();
-    loadLogs();
   }, []);
 
   useEffect(() => {
+    if (!loggedCustomer) return;
     loadCustomerQuotes(customerId).then((quotes) => {
       if (quoteId && !quotes.some((item) => item.quote_id === quoteId)) {
         setQuoteId('');
         setQuote(null);
       }
     });
-  }, [customerId]);
+  }, [customerId, loggedCustomer]);
 
   useEffect(() => {
     loadQuote();
@@ -116,7 +106,7 @@ function App() {
     const trimmed = message.trim();
     if (!trimmed || busy) return;
     if (!customerId || !quoteId) {
-      setMessages((prev) => [...prev, { id: `warn-${Date.now()}`, role: 'assistant', text: 'Lütfen önce müşteri ve teklif seçin.', sources: [] }]);
+      setMessages((prev) => [...prev, { id: `warn-${Date.now()}`, role: 'assistant', text: 'Lütfen önce teklif seçin veya yeni teklif oluşturun.', sources: [] }]);
       return;
     }
     setBusy(true);
@@ -151,7 +141,6 @@ function App() {
       }
     });
     await loadQuote();
-    await loadLogs();
     setBusy(false);
   }
 
@@ -159,9 +148,27 @@ function App() {
     await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'web quantity control' }),
+      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'web quantity control', customer_id: customerId }),
     });
     await loadQuote();
+  }
+
+  async function loginCustomer(nextCustomerId = loginCustomerId) {
+    const trimmed = nextCustomerId.trim();
+    if (!trimmed) return;
+    setLoginError('');
+    const res = await fetch(`${API}/customers/${trimmed}`);
+    if (!res.ok) {
+      setLoginError('Müşteri bulunamadı.');
+      return;
+    }
+    const customer = await res.json();
+    setLoggedCustomer(customer);
+    setCustomerId(customer.customer_id);
+    setQuoteId('');
+    setQuote(null);
+    const quotes = await loadCustomerQuotes(customer.customer_id);
+    if (quotes.length === 1) setQuoteId(quotes[0].quote_id);
   }
 
   async function createCustomer() {
@@ -172,7 +179,7 @@ function App() {
       body: JSON.stringify(newCustomer),
     });
     const created = await res.json();
-    await loadCustomers();
+    setLoggedCustomer(created);
     setCustomerId(created.customer_id);
     setQuoteId('');
     setQuote(null);
@@ -190,6 +197,43 @@ function App() {
     await loadCustomerQuotes(customerId);
     setQuoteId(created.quote_id);
     setQuote(created);
+  }
+
+  if (!loggedCustomer) {
+    return (
+      <main className="loginShell">
+        <section className="loginPanel">
+          <div className="brand loginBrand">
+            <div className="mark">TBR</div>
+            <div>
+              <h1>The Blue Red</h1>
+              <p>Teklif Asistanı</p>
+            </div>
+          </div>
+          <label>
+            Müşteri ID
+            <input value={loginCustomerId} onChange={(e) => setLoginCustomerId(e.target.value)} placeholder="CUST-ANK-002" />
+          </label>
+          {loginError && <p className="errorText">{loginError}</p>}
+          <button className="primary" onClick={() => loginCustomer()}>Giriş yap</button>
+          <div className="loginDivider" />
+          <div className="loginForm">
+            <strong>Yeni müşteri ekle</strong>
+            <input placeholder="Müşteri adı" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
+            <input placeholder="Şehir" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} />
+            <select value={newCustomer.price_tier} onChange={(e) => setNewCustomer({ ...newCustomer, price_tier: e.target.value })}>
+              <option value="standard">standard</option>
+              <option value="partner">partner</option>
+            </select>
+            <label className="checkboxLabel light">
+              <input type="checkbox" checked={newCustomer.allow_backorder} onChange={(e) => setNewCustomer({ ...newCustomer, allow_backorder: e.target.checked })} />
+              Backorder uygun
+            </label>
+            <button className="smallAction" onClick={createCustomer} disabled={!newCustomer.name.trim()}>Yeni müşteri oluştur ve giriş yap</button>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   function newProduct() {
@@ -257,18 +301,17 @@ function App() {
             <p>Teklif Asistanı</p>
           </div>
         </div>
-        <label>
-          Müşteri
-          <select value={customerId} onChange={(e) => {
-            setCustomerId(e.target.value);
+        <div className="customerBadge">
+          <strong>{loggedCustomer.name}</strong>
+          <span>{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</span>
+          <button className="smallAction" onClick={() => {
+            setLoggedCustomer(null);
+            setCustomerId('');
             setQuoteId('');
             setQuote(null);
-          }}>
-            {customers.map((customer) => (
-              <option key={customer.customer_id} value={customer.customer_id}>{customerLabel(customer)}</option>
-            ))}
-          </select>
-        </label>
+            setCustomerQuotes([]);
+          }}>Müşteri değiştir</button>
+        </div>
         <label>
           Teklif
           <select value={quoteId} onChange={(e) => setQuoteId(e.target.value)} disabled={!customerId}>
@@ -286,27 +329,12 @@ function App() {
           <RefreshCw size={18} />
           Yenile
         </button>
-        <div className="sidebarForm">
-          <strong>Yeni müşteri</strong>
-          <input placeholder="Müşteri adı" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
-          <input placeholder="Şehir" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} />
-          <select value={newCustomer.price_tier} onChange={(e) => setNewCustomer({ ...newCustomer, price_tier: e.target.value })}>
-            <option value="standard">standard</option>
-            <option value="partner">partner</option>
-          </select>
-          <label className="checkboxLabel">
-            <input type="checkbox" checked={newCustomer.allow_backorder} onChange={(e) => setNewCustomer({ ...newCustomer, allow_backorder: e.target.checked })} />
-            Backorder uygun
-          </label>
-          <button className="smallAction" onClick={createCustomer} disabled={!newCustomer.name.trim()}>Ekle</button>
-        </div>
         <nav className="tabs">
           {[
             ['chat', Send, 'Sohbet'],
-            ['quote', Database, 'Teklif'],
+            ['quote', Database, 'Teklifler'],
             ['products', Package, 'Ürünler'],
             ['knowledge', BookOpen, 'Bilgi'],
-            ['logs', ScrollText, 'Loglar'],
           ].map(([key, Icon, label]) => (
             <button key={key} className={tab === key ? 'activeTab' : ''} onClick={() => setTab(key)}>
               <Icon size={17} />
@@ -320,7 +348,7 @@ function App() {
         <header className="topbar">
           <div>
             <h2>{quote?.quote_id || quoteId || 'Teklif seçilmedi'}</h2>
-            <p>{quote?.customer_name || customers.find((customer) => customer.customer_id === customerId)?.name || 'Müşteri seçilmedi'}</p>
+            <p>{quote?.customer_name || loggedCustomer.name}</p>
           </div>
           <div className="totals">
             <span>Ara toplam {money(quote?.subtotal_try)}</span>
@@ -332,8 +360,10 @@ function App() {
           <div className="panel quotePanel">
             <div className="panelTitle">
               <Database size={18} />
-              Kalıcı Teklif Durumu
+              Teklifler
+              <button className="smallAction" onClick={createQuote}>Yeni teklif oluştur</button>
             </div>
+            {!quoteId && <p className="empty">Bu müşteri için teklif seçin veya yeni teklif oluşturun.</p>}
             <table>
               <thead>
                 <tr>
@@ -375,7 +405,9 @@ function App() {
             <div className="panelTitle">
               <Send size={18} />
               Sohbet
+              <span className="customerContext">{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</span>
             </div>
+            {!quoteId && <p className="empty">Bu müşteri için teklif yok. Yeni teklif oluşturun.</p>}
             <div className="messages">
               {messages.length === 0 && <div className="empty">Ürün, stok, garanti, teslimat veya teklifiniz hakkında yazabilirsiniz.</div>}
               {messages.map((item, idx) => (
@@ -480,24 +512,6 @@ function App() {
           </div>
         </section>}
 
-        {tab === 'logs' && <section className="adminGrid single">
-          <div className="panel">
-            <div className="panelTitle">
-              <ScrollText size={18} />
-              Kalıcı Tool Call Logları
-              <button className="smallAction" onClick={loadLogs}>Yenile</button>
-            </div>
-            <div className="eventList tall">
-              {logs.map((log) => (
-                <div className="event" key={log.id}>
-                  <strong>#{log.sequence_no} {log.tool_name} · {log.success ? 'success' : 'error'}</strong>
-                  <span>{log.session_id} · {log.message_id} · {log.quote_id || '-'}</span>
-                  <code>{JSON.stringify({ input: log.input_json, sources: log.source_ids, delta: log.quote_delta, error: log.error })}</code>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>}
       </section>
     </main>
   );

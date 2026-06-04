@@ -72,6 +72,7 @@ class CustomerCreateRequest(BaseModel):
 class QuoteCreateRequest(BaseModel):
     customer_id: str
     created_by_channel: str = "web"
+    currency: str = "TRY"
     notes: str = ""
 
 

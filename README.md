@@ -73,6 +73,7 @@ curl -X POST http://127.0.0.1:8000/seed/reset
 - `POST /knowledge`
 - `PUT /knowledge/{knowledge_id}`
 - `GET /customers`
+- `GET /customers/{customer_id}`
 - `POST /customers`
 - `GET /customers/{customer_id}/quotes`
 - `POST /quotes`
@@ -92,15 +93,14 @@ npm install
 npm run dev
 ```
 
-Web admin paneli gerçek backend API’ye bağlıdır. Kullanıcı önce müşteri seçer; teklif dropdown’u sadece seçili müşteriye ait teklifleri gösterir. Yeni müşteri eklenebilir ve seçili müşteri için yeni draft teklif oluşturulabilir. Sol menü:
+Web uygulaması gerçek backend API’ye bağlıdır. İlk ekranda müşteri ID ile giriş yapılır veya yeni müşteri oluşturulur. Girişten sonra teklif dropdown’u sadece oturumdaki müşteriye ait teklifleri gösterir; seçili müşteri için yeni draft teklif oluşturulabilir. Sol menü:
 
 - Sohbet: ChatGPT benzeri kullanıcı/asistan balonları, streaming cevap, sade kaynak listesi
-- Teklif: kalıcı draft state, satır toplamları ve `[-] [quantity] [+]` kontrolleri
+- Teklifler: kalıcı draft state, satır toplamları ve `[-] [quantity] [+]` kontrolleri
 - Ürün listeleme, ekleme ve düzenleme
 - Knowledge listeleme, ekleme ve düzenleme
-- Kalıcı tool-call log viewer
 
-Raw tool events ve JSON debug bilgileri sadece Loglar ekranında gösterilir; müşteri sohbetine karışmaz.
+Müşteri arayüzünde Loglar sekmesi yoktur. Raw tool event ve JSON debug bilgileri müşteri sohbetine karışmaz; `tool_call_logs` tablosu ile `/tool-call-logs` ve `/sessions/{session_id}/tool-calls` endpointleri backend/debug kullanımı için korunur.
 
 ## Mobile
 
@@ -110,7 +110,7 @@ npm install
 npm run start
 ```
 
-Expo uygulaması backend’e bağlanır, müşteri dropdown’undan seçim yapar, sadece seçili müşterinin tekliflerini gösterir ve seçili müşteri için yeni draft teklif oluşturabilir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
+Expo uygulaması backend’e bağlanır. İlk ekranda müşteri ID ile giriş yapılır veya yeni müşteri oluşturulur; girişten sonra sadece oturumdaki müşterinin teklifleri seçilebilir. Seçili müşteri için yeni draft teklif oluşturulabilir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
 
 ## Retrieval
 
@@ -154,6 +154,17 @@ Contract/golden mode:
 - `require_confirmation=false`
 - Golden senaryolardaki doğrudan tool-call/mutation beklentileri korunur.
 
+## Customer And Quote Scope
+
+- Kullanıcı önce müşteri olarak giriş yapar.
+- Web ve mobil sadece giriş yapılan müşterinin tekliflerini listeler.
+- Yeni müşteri oluşturulabilir; oluşturulan müşteriyle otomatik giriş yapılır.
+- Giriş yapılan müşteri için yeni draft teklif oluşturulabilir.
+- Chat ve quantity mutation istekleri `customer_id` + `quote_id` ile gider.
+- Backend, quote ile customer eşleşmezse chat ve quantity mutation işlemlerini controlled error/403 ile engeller.
+- Müşteri değişince eski `quote_id` temizlenir.
+- Web ve mobil aynı customer/quote akışını ve aynı backend state’ini kullanır.
+
 ## Quote Mutation Model
 
 - `add_to_quote`: Aynı ürün aktifse ikinci satır açmaz, miktarı artırır.
@@ -196,20 +207,22 @@ Retry durumunda aynı `message_id` aynı idempotency key’i üretir; mutation i
 Son test çıktısı:
 
 ```text
-collected 48 items
-backend/tests/test_customer_quote_api.py ..
+collected 49 items
+backend/tests/test_customer_quote_api.py ...
 backend/tests/test_golden_scenarios_full.py ......................
 backend/tests/test_orchestrator.py ....
 backend/tests/test_pricing_rules.py ......
 backend/tests/test_tools.py .....
 backend/tests/test_user_facing_chat.py .........
-48 passed
+49 passed
 ```
 
 Test kapsamı:
 
 - 22 golden senaryonun tool call, source ve DB quote assertion kontrolü
-- Customer create/list, scoped quote listesi ve yeni draft quote API akışı
+- Customer create/list/read, scoped quote listesi ve yeni draft quote API akışı
+- Quote/customer mismatch chat guard ve quantity mutation guard
+- Tool-call log DB/endpoints görünürlüğünün korunması
 - Product Q&A mutasyonsuz cevapları
 - Confirmation/pending action akışı
 - Fiyat limiti safety check

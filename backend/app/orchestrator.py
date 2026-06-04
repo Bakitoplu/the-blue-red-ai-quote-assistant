@@ -390,6 +390,9 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
     if not quote:
         yield sse("controlled_error", {"error": "Teklif bulunamadı."})
         return
+    if req.customer_id and quote.customer_id != req.customer_id:
+        yield sse("controlled_error", {"error": "Teklif bu müşteriye ait değil."})
+        return
     session_id = req.session_id or f"SES-{uuid4().hex[:10]}"
     message_id = req.message_id or f"MSG-{uuid4().hex[:10]}"
     db.merge(ChatSession(session_id=session_id, quote_id=req.quote_id, customer_id=req.customer_id or quote.customer_id, channel=req.channel))

@@ -102,6 +102,14 @@ def list_customers(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
     return [_customer_dict(c) for c in db.scalars(select(Customer).order_by(Customer.customer_id)).all()]
 
 
+@app.get("/customers/{customer_id}")
+def read_customer(customer_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+    customer = db.get(Customer, customer_id)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Müşteri bulunamadı.")
+    return _customer_dict(customer)
+
+
 @app.post("/customers")
 def create_customer(payload: CustomerCreateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     customer = Customer(
@@ -137,7 +145,7 @@ def create_quote(payload: QuoteCreateRequest, db: Session = Depends(get_db)) -> 
         customer_id=payload.customer_id,
         status="draft",
         created_by_channel=payload.created_by_channel,
-        currency="TRY",
+        currency=payload.currency,
         notes=payload.notes,
     )
     db.add(quote)
@@ -152,6 +160,10 @@ def read_quote(quote_id: str, db: Session = Depends(get_db)) -> dict:
 
 @app.post("/quotes/{quote_id}/items/{product_id}/quantity")
 def set_quote_item_quantity(quote_id: str, product_id: str, payload: dict[str, Any], db: Session = Depends(get_db)) -> dict:
+    quote = db.get(Quote, quote_id)
+    customer_id = payload.get("customer_id")
+    if customer_id and quote and quote.customer_id != customer_id:
+        raise HTTPException(status_code=403, detail="Teklif bu müşteriye ait değil.")
     result = update_quote_item(
         db,
         UpdateQuoteItemRequest(
