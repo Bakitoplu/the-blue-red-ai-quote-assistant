@@ -8,6 +8,7 @@ const API = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
 const INITIAL_MESSAGES = [{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }];
 const API_ERROR_MESSAGE = `Backend’e bağlanılamıyor. Expo Go fiziksel telefonda çalışıyorsa EXPO_PUBLIC_API_URL bilgisayarınızın LAN adresi olmalı. Şu an: ${API}`;
+const API_TIMEOUT_MS = 8000;
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
@@ -20,6 +21,16 @@ async function readSse(response, onEvent) {
     const data = chunk.match(/^data: (.+)$/m)?.[1];
     if (event && data) onEvent(event, JSON.parse(data));
   });
+}
+
+async function apiFetch(path, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    return await fetch(`${API}${path}`, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default function App() {
@@ -37,6 +48,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [busy, setBusy] = useState(false);
+  const [loginBusy, setLoginBusy] = useState(false);
   const [quotePickerOpen, setQuotePickerOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
@@ -48,7 +60,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch(`${API}/quotes/${quoteId}`);
+      const res = await apiFetch(`/quotes/${quoteId}`);
       if (!res.ok) throw new Error('quote fetch failed');
       setQuote(await res.json());
       setApiError('');
@@ -63,7 +75,7 @@ export default function App() {
       return [];
     }
     try {
-      const res = await fetch(`${API}/customers/${nextCustomerId}/quotes`);
+      const res = await apiFetch(`/customers/${nextCustomerId}/quotes`);
       if (!res.ok) throw new Error('customer quotes fetch failed');
       const data = await res.json();
       setCustomerQuotes(data);
@@ -102,7 +114,7 @@ export default function App() {
     setMessages((prev) => [...prev, { role: 'user', text: trimmed, sources: [] }, { id: assistantId, role: 'assistant', text: '', sources: [] }]);
     setMessage('');
     try {
-      const res = await fetch(`${API}/chat/stream`, {
+      const res = await apiFetch('/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,7 +149,7 @@ export default function App() {
 
   async function setQuantity(item, quantity) {
     try {
-      const res = await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
+      const res = await apiFetch(`/quotes/${quoteId}/items/${item.product_id}/quantity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control', customer_id: customerId }),
@@ -159,9 +171,10 @@ export default function App() {
     const trimmed = nextCustomerId.trim();
     if (!trimmed) return;
     setLoginError('');
+    setLoginBusy(true);
     let customer;
     try {
-      const res = await fetch(`${API}/customers/${trimmed}`);
+      const res = await apiFetch(`/customers/${trimmed}`);
       if (!res.ok) {
         setLoginError('Müşteri bulunamadı.');
         return;
@@ -172,6 +185,8 @@ export default function App() {
       setApiError(API_ERROR_MESSAGE);
       setLoginError('Backend’e bağlanılamıyor.');
       return;
+    } finally {
+      setLoginBusy(false);
     }
     setLoggedCustomer(customer);
     setCustomerId(customer.customer_id);
@@ -189,7 +204,7 @@ export default function App() {
     if (!newCustomer.name.trim()) return;
     let created;
     try {
-      const res = await fetch(`${API}/customers`, {
+      const res = await apiFetch('/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCustomer),
@@ -220,7 +235,7 @@ export default function App() {
     if (!customerId) return;
     let created;
     try {
-      const res = await fetch(`${API}/quotes`, {
+      const res = await apiFetch('/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customer_id: customerId, created_by_channel: 'mobile' }),
@@ -272,12 +287,13 @@ export default function App() {
               {authMode === 'login' ? <>
                 <Text style={styles.panelTitle}>Müşteri girişi</Text>
                 {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
+                <Text style={styles.apiHint}>API: {API}</Text>
                 {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
                 <Text style={styles.fieldLabel}>Müşteri ID</Text>
                 <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
                 {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
-                <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
-                  <Text style={styles.primaryActionText}>Giriş yap</Text>
+                <TouchableOpacity style={[styles.primaryAction, loginBusy && styles.disabled]} onPress={() => loginCustomer()} disabled={loginBusy}>
+                  <Text style={styles.primaryActionText}>{loginBusy ? 'Bağlanıyor…' : 'Giriş yap'}</Text>
                 </TouchableOpacity>
                 <Text style={styles.helperText}>Müşteri ID’niz yok mu?</Text>
                 <TouchableOpacity style={styles.linkAction} onPress={() => {
@@ -549,6 +565,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#b42318' },
   successText: { color: '#0f766e', lineHeight: 20 },
   helperText: { color: '#60737c', textAlign: 'center', marginTop: 4 },
+  apiHint: { color: '#60737c', fontSize: 12, lineHeight: 18 },
   linkAction: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
   linkActionText: { color: '#0f766e', fontWeight: '800' },
   disabled: { opacity: 0.6 },
