@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const API = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.14:8000';
 const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
+const QUOTES = [
+  ['Q-1001', 'CUST-IST-001'],
+  ['Q-1002', 'CUST-ANK-002'],
+  ['Q-1003', 'CUST-IZM-003'],
+  ['Q-1004', 'CUST-BUR-004'],
+  ['Q-1005', 'CUST-ANT-005'],
+  ['Q-2001', 'CUST-IST-001'],
+  ['Q-2002', 'CUST-ANK-002'],
+  ['Q-2003', 'CUST-IZM-003'],
+  ['Q-2004', 'CUST-BUR-004'],
+  ['Q-2005', 'CUST-ANT-005'],
+];
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
@@ -26,6 +38,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
   const [busy, setBusy] = useState(false);
+  const [quotePickerOpen, setQuotePickerOpen] = useState(false);
 
   async function loadQuote() {
     const res = await fetch(`${API}/quotes/${quoteId}`);
@@ -78,6 +91,12 @@ export default function App() {
     await loadQuote();
   }
 
+  function selectQuote([nextQuoteId, nextCustomerId]) {
+    setQuoteId(nextQuoteId);
+    setCustomerId(nextCustomerId);
+    setQuotePickerOpen(false);
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
@@ -92,13 +111,42 @@ export default function App() {
           </View>
         </View>
 
-        <View style={styles.row}>
-          <TextInput style={styles.input} value={quoteId} onChangeText={setQuoteId} />
+        <View style={styles.selectorRow}>
+          <TouchableOpacity style={styles.selectBox} onPress={() => setQuotePickerOpen(true)}>
+            <Text style={styles.selectLabel}>Teklif</Text>
+            <View style={styles.selectValueRow}>
+              <Text style={styles.selectValue}>{quoteId}</Text>
+              <Ionicons name="chevron-down" size={18} color="#455a64" />
+            </View>
+            <Text style={styles.selectMeta}>{quote?.customer_name || customerId}</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={loadQuote}>
             <Ionicons name="refresh" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
-        <TextInput style={styles.input} value={customerId} onChangeText={setCustomerId} />
+
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Teklif</Text>
+          <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
+          {(quote?.items || []).map((item) => (
+            <View key={item.quote_item_id} style={[styles.line, item.status !== 'active' && styles.inactive]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.product}>{item.name_tr}</Text>
+                <Text style={styles.meta}>{item.product_id} · {item.status}</Text>
+              </View>
+              <View style={styles.qtyControl}>
+                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity - 1)}>
+                  <Text>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.qty}>{item.quantity}</Text>
+                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity + 1)} disabled={item.status !== 'active'}>
+                  <Text>+</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.amount}>{money(item.line_total_try)}</Text>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>Sohbet</Text>
@@ -125,30 +173,21 @@ export default function App() {
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Teklif</Text>
-          <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
-          {(quote?.items || []).map((item) => (
-            <View key={item.quote_item_id} style={[styles.line, item.status !== 'active' && styles.inactive]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.product}>{item.name_tr}</Text>
-                <Text style={styles.meta}>{item.product_id} · {item.status}</Text>
-              </View>
-              <View style={styles.qtyControl}>
-                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity - 1)}>
-                  <Text>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.qty}>{item.quantity}</Text>
-                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity + 1)} disabled={item.status !== 'active'}>
-                  <Text>+</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.amount}>{money(item.line_total_try)}</Text>
-            </View>
-          ))}
-        </View>
       </ScrollView>
+
+      <Modal visible={quotePickerOpen} transparent animationType="fade" onRequestClose={() => setQuotePickerOpen(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setQuotePickerOpen(false)}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Teklif Seç</Text>
+            {QUOTES.map((option) => (
+              <TouchableOpacity key={option[0]} style={[styles.quoteOption, option[0] === quoteId && styles.quoteOptionActive]} onPress={() => selectQuote(option)}>
+                <Text style={styles.quoteOptionId}>{option[0]}</Text>
+                <Text style={styles.quoteOptionCustomer}>{option[1]}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -168,7 +207,7 @@ function SourceList({ sources }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f4f7f8' },
-  container: { padding: 18, gap: 14 },
+  container: { paddingHorizontal: 18, paddingBottom: 18, paddingTop: Platform.OS === 'android' ? (NativeStatusBar.currentHeight || 0) + 18 : 34, gap: 14 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   logo: { width: 48, height: 48, borderRadius: 6, backgroundColor: '#d64045', alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#fff', fontWeight: '800' },
@@ -177,6 +216,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   input: { flex: 1, minHeight: 44, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, paddingHorizontal: 12 },
   iconButton: { width: 48, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#294047' },
+  selectorRow: { flexDirection: 'row', gap: 10, alignItems: 'stretch' },
+  selectBox: { flex: 1, minHeight: 64, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, justifyContent: 'center' },
+  selectLabel: { color: '#60737c', fontSize: 12, fontWeight: '700' },
+  selectValueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  selectValue: { color: '#172026', fontSize: 18, fontWeight: '800' },
+  selectMeta: { color: '#60737c', marginTop: 2, fontSize: 12 },
   panel: { backgroundColor: '#fff', borderColor: '#d9e3e7', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
   panelTitle: { fontSize: 16, fontWeight: '800', color: '#172026' },
   messages: { gap: 10, minHeight: 220 },
@@ -202,5 +247,12 @@ const styles = StyleSheet.create({
   composer: { minHeight: 52, borderColor: '#c7d5da', borderWidth: 1, borderRadius: 8, padding: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: '#fff' },
   message: { flex: 1, minHeight: 34, maxHeight: 120, paddingHorizontal: 6, paddingVertical: 6, textAlignVertical: 'top' },
   sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0f766e', alignItems: 'center', justifyContent: 'center' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(23, 32, 38, 0.32)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 12, borderTopRightRadius: 12, padding: 16, gap: 8 },
+  modalTitle: { fontSize: 16, fontWeight: '800', color: '#172026', marginBottom: 4 },
+  quoteOption: { minHeight: 52, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#f4f7f8', justifyContent: 'center' },
+  quoteOptionActive: { borderColor: '#0f766e', borderWidth: 1, backgroundColor: '#eef7f5' },
+  quoteOptionId: { fontWeight: '800', color: '#172026' },
+  quoteOptionCustomer: { color: '#60737c', marginTop: 2 },
   disabled: { opacity: 0.6 },
 });
