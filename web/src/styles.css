@@ -192,10 +192,12 @@ button {
 .chatLayout {
   padding: 24px;
   display: grid;
-  grid-template-columns: minmax(420px, 900px);
+  grid-template-columns: minmax(0, 1160px);
+  justify-content: center;
   align-content: stretch;
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 .panel {
