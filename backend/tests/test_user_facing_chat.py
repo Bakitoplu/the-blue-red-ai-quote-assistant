@@ -2,10 +2,19 @@ from app.models import PendingAction, ToolCallLog
 from app.orchestrator import plan_and_execute
 from app.schemas import AddToQuoteRequest, ChatStreamRequest
 from app.tools import add_to_quote, get_quote
+import json
+import re
 
 
 def drain(db, req):
     return "".join(plan_and_execute(db, req))
+
+
+def answer_text(events: str) -> str:
+    chunks = []
+    for match in re.finditer(r"^event: text_delta\ndata: (.+)$", events, re.M):
+        chunks.append(json.loads(match.group(1))["text"])
+    return "".join(chunks)
 
 
 def names(db, message_id):
@@ -71,11 +80,80 @@ def test_user_mode_creates_pending_action_then_applies_on_confirmation(db):
     first = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="CONF1", message_id="CONF1-A", message="9.000 TL altında stokta kablosuz QR okuyucu ekler misin?"))
     assert "add_to_quote" not in names(db, "CONF1-A")
     assert db.query(PendingAction).filter_by(session_id="CONF1", status="pending").one().product_id == "PRD-BC-110"
-    assert "eklememi ister misiniz" in first
+    assert "eklememi ister misiniz" in answer_text(first)
     assert qty(db, "Q-1002", "PRD-BC-110") == 0
     second = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="CONF1", message_id="CONF1-B", message="evet ekle"))
     assert "add_to_quote" in names(db, "CONF1-B")
     assert qty(db, "Q-1002", "PRD-BC-110") == 1
+
+
+def test_recommendation_without_add_words_creates_pending_without_mutation(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="REC1", message_id="REC1-A", message="9 bin TL QR okuyucu"))
+    assert names(db, "REC1-A") == ["search_products"]
+    assert "add_to_quote" not in names(db, "REC1-A")
+    assert "eklememi ister misiniz" in answer_text(events)
+    assert db.query(PendingAction).filter_by(session_id="REC1", status="pending").one().product_id == "PRD-BC-110"
+    assert qty(db, "Q-1002", "PRD-BC-110") == 0
+
+
+def test_recommendation_parses_plain_price_under_wording(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="REC2", message_id="REC2-A", message="9000 altı qr okuyucu"))
+    assert names(db, "REC2-A") == ["search_products"]
+    assert "eklememi ister misiniz" in answer_text(events)
+    assert db.query(PendingAction).filter_by(session_id="REC2", status="pending").one().product_id == "PRD-BC-110"
+
+
+def test_add_word_with_product_filter_is_new_intent_not_confirmation(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="REC3", message_id="REC3-A", message="9.000 TL altında stokta kablosuz QR okuyucu ekle"))
+    assert names(db, "REC3-A") == ["search_products"]
+    assert "add_to_quote" not in names(db, "REC3-A")
+    assert "bekleyen işlem" not in events
+    assert "eklememi ister misiniz" in answer_text(events)
+    assert qty(db, "Q-1002", "PRD-BC-110") == 0
+
+
+def test_too_low_price_limit_does_not_create_pending_or_no_pending_response(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="REC4", message_id="REC4-A", message="1.000 TL altında stokta kablosuz QR okuyucu ekle"))
+    assert names(db, "REC4-A") == ["search_products", "get_knowledge_entries"]
+    assert "add_to_quote" not in names(db, "REC4-A")
+    assert "bulamadım" in answer_text(events)
+    assert "bekleyen işlem" not in answer_text(events)
+    assert db.query(PendingAction).filter_by(session_id="REC4", status="pending").count() == 0
+    assert qty(db, "Q-1002", "PRD-BC-110") == 0
+
+
+def test_bare_add_and_yes_only_confirm_when_pending_exists(db):
+    no_pending = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="CONF3", message_id="CONF3-A", message="ekle"))
+    assert "Onaylayabileceğim bekleyen bir işlem bulamadım" in answer_text(no_pending)
+    drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="CONF3", message_id="CONF3-B", message="9 bin TL QR okuyucu"))
+    yes = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="CONF3", message_id="CONF3-C", message="evet"))
+    assert "add_to_quote" in names(db, "CONF3-C")
+    assert "Onayladığınız ürün teklifinize eklendi" in answer_text(yes)
+    assert qty(db, "Q-1002", "PRD-BC-110") == 1
+
+
+def test_typo_product_request_is_understood_safely(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="TYPO1", message_id="TYPO1-A", message="barkot okucu 9 bin"))
+    assert names(db, "TYPO1-A") == ["search_products"]
+    assert "BlueScan Air" in events
+    assert "eklememi ister misiniz" in answer_text(events)
+    assert "add_to_quote" not in names(db, "TYPO1-A")
+
+
+def test_unclear_short_qr_asks_clarification_without_tools_or_mutation(db):
+    before = get_quote(db, "Q-1002").data
+    events = drain(db, ChatStreamRequest(quote_id="Q-1002", customer_id="CUST-ANK-002", session_id="UNCL1", message_id="UNCL1-A", message="qr"))
+    assert names(db, "UNCL1-A") == []
+    assert "bilgi mi almak istersiniz" in answer_text(events)
+    assert get_quote(db, "Q-1002").data == before
+
+
+def test_policy_answer_is_real_text_not_internal_summary(db):
+    events = drain(db, ChatStreamRequest(quote_id="Q-1001", customer_id="CUST-IST-001", session_id="POL1", message_id="POL1-A", message="Aktive edilmiş yazılım lisansını iade edebilir miyiz?"))
+    assert names(db, "POL1-A") == ["get_knowledge_entries"]
+    assert "Aktivasyonu yapılmış yazılım lisansları" in answer_text(events)
+    assert "Kaynaklı politika cevabı üretildi" not in answer_text(events)
+    assert "add_to_quote" not in names(db, "POL1-A")
 
 
 def test_user_mode_add_request_with_product_question_words_still_requires_confirmation(db):
@@ -92,7 +170,7 @@ def test_user_mode_add_request_with_product_question_words_still_requires_confir
     assert names(db, "CONF1B-A") == ["search_products"]
     assert "add_to_quote" not in names(db, "CONF1B-A")
     assert db.query(PendingAction).filter_by(session_id="CONF1B", status="pending").one().product_id == "PRD-BC-110"
-    assert "eklememi ister misiniz" in events
+    assert "eklememi ister misiniz" in answer_text(events)
 
 
 def test_user_mode_cancels_pending_action(db):

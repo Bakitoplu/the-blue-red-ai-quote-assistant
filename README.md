@@ -144,8 +144,13 @@ Fiyat limiti otomatik ekleme/değiştirmede kesin filtredir. Stok `0` ürünler 
 Normal user-facing mode:
 
 - `require_confirmation=true`
-- Ürün önerisi veya “ekle” talebi önce ürün özeti ve onay sorusu üretir.
-- Onay kelimeleri: `evet`, `tamam`, `onaylıyorum`, `ekle`, `uygula`, `olur`.
+- Ürün adı, kategori, özellik veya fiyat sınırı içeren öneri/arama mesajları ürün özeti ve onay sorusu üretir; doğrudan teklif mutasyonu yapmaz.
+- `ekle`, `ekler misin`, `sepete at`, `dahil et`, `alalım`, `bunu yaz` gibi add ifadeleri de önce onay ister.
+- `9 bin`, `9k`, `9.000 TL`, `9000 altı`, `9000’e kadar`, `bütçe 9000` gibi fiyat formatları `max_price_try` olarak kesin filtrelenir.
+- `barkot okucu`, `scaner`, `yazici`, `sarj`, `kilif`, `adaptor` gibi yaygın yazım hataları deterministic normalization/alias ile tolere edilir.
+- `qr`, `okuyucu`, `9000`, `stok`, `blue` gibi belirsiz kısa mesajlarda netleştirme sorusu sorulur.
+- Onay kelimeleri: `evet`, `tamam`, `onaylıyorum`, `ekle`, `uygula`, `olur`, `aynen`, `kabul`, `ok`, `okey`.
+- `ekle` kelimesi ürün/fiyat/özellik içeren bir mesajda geçiyorsa yeni add/recommendation intent sayılır; sadece kısa onay mesajıysa pending action uygular.
 - İptal kelimeleri: `hayır`, `iptal`, `vazgeç`, `ekleme`, `istemiyorum`.
 - Pending action DB’de `pending_actions` tablosunda tutulur.
 
@@ -208,14 +213,14 @@ Retry durumunda aynı `message_id` aynı idempotency key’i üretir; mutation i
 Son test çıktısı:
 
 ```text
-collected 49 items
+collected 57 items
 backend/tests/test_customer_quote_api.py ...
 backend/tests/test_golden_scenarios_full.py ......................
 backend/tests/test_orchestrator.py ....
 backend/tests/test_pricing_rules.py ......
 backend/tests/test_tools.py .....
-backend/tests/test_user_facing_chat.py .........
-49 passed
+backend/tests/test_user_facing_chat.py .................
+57 passed
 ```
 
 Test kapsamı:
@@ -225,6 +230,7 @@ Test kapsamı:
 - Quote/customer mismatch chat guard ve quantity mutation guard
 - Tool-call log DB/endpoints görünürlüğünün korunması
 - Product Q&A mutasyonsuz cevapları
+- Geniş chat intent parsing: fiyat formatları, typo toleransı, belirsiz kısa mesaj ve confirmation/add ayrımı
 - Confirmation/pending action akışı
 - Fiyat limiti safety check
 - Backorder kuralları

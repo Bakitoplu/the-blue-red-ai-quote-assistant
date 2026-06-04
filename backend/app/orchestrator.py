@@ -33,23 +33,39 @@ def sse(event: str, data: dict) -> str:
 def _norm(text: str) -> str:
     text = text.casefold().replace("ı", "i")
     text = unicodedata.normalize("NFKD", text)
-    return "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[^\w\s.+,-]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _price_limit(text: str) -> float | None:
     ntext = _norm(text)
-    bin_match = re.search(r"(\d+(?:[.,]\d+)?)\s*bin\s*(?:tl|try)?", ntext)
+    bin_match = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:bin|k)\s*(?:tl|try|lira)?", ntext)
     if bin_match:
         return float(bin_match.group(1).replace(",", ".")) * 1000
-    match = re.search(r"(\d{1,3}(?:[.\s]\d{3})+|\d+)\s*(?:tl|try)", ntext)
+    compact_match = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:bin|k)(?:tl|try|lira)?", ntext)
+    if compact_match:
+        return float(compact_match.group(1).replace(",", ".")) * 1000
+    price_context = any(k in ntext for k in ["tl", "try", "lira", "alt", "kadar", "max", "maksimum", "butce", "bütce", "butcem"])
+    match = re.search(r"(\d{1,3}(?:[.\s,]\d{3})+|\d+)\s*(?:tl|try|lira)?", ntext)
     if not match:
         return None
-    return float(match.group(1).replace(".", "").replace(" ", ""))
+    raw = match.group(1)
+    if not price_context and len(re.sub(r"\D", "", raw)) < 4:
+        return None
+    return float(raw.replace(".", "").replace(",", "").replace(" ", ""))
 
 
 def _is_confirmation(text: str) -> bool:
     n = _norm(text)
-    return any(re.search(rf"\b{word}\b", n) for word in ["evet", "tamam", "onayliyorum", "ekle", "uygula", "olur"])
+    return any(re.search(rf"\b{word}\b", n) for word in ["evet", "tamam", "onayliyorum", "ekle", "uygula", "olur", "aynen", "kabul", "ok", "okey"])
+
+
+def _is_bare_confirmation(text: str) -> bool:
+    n = _norm(text)
+    words = set(n.split())
+    allowed = {"evet", "tamam", "onayliyorum", "ekle", "uygula", "olur", "aynen", "kabul", "ok", "okey"}
+    return 0 < len(words) <= 3 and words.issubset(allowed)
 
 
 def _is_cancel(text: str) -> bool:
@@ -64,16 +80,99 @@ def _allow_wait(text: str) -> bool:
 
 def _is_product_question(text: str) -> bool:
     n = _norm(text)
-    if any(k in n for k in ["ekle", "ekler", "teklife koy", "teklifime koy", "degistir", "değiştir", "cikar", "çıkar"]):
+    if _has_add_intent(text) or any(k in n for k in ["teklife koy", "teklifime koy", "degistir", "cikar", "kaldir", "sil"]):
         return False
     question_terms = ["fiyati", "fiyat", "stokta", "var mi", "destekli", "garantisi", "garanti", "kac ay", "kac gunde", "teslim", "nedir", "ne kadar", "alternatifi"]
-    product_terms = ["prd-", "bluescan", "redscan", "blueprint", "koruyucu", "arac sarj", "usb-c", "fis yazici", "barkod okuyucu"]
-    return any(p in n for p in product_terms) and any(q in n for q in question_terms)
+    return _has_product_signal(text) and any(q in n for q in question_terms)
 
 
 def _is_recommendation_only(text: str) -> bool:
     n = _norm(text)
-    return any(k in n for k in ["oner", "öner", "uygun urun", "uygun ürün", "tavsiye", "hangisini"]) and "ekle" not in n
+    return any(k in n for k in ["oner", "uygun urun", "tavsiye", "hangisini", "lazim", "ariyorum", "bul", "butce", "butcem"]) and not _has_add_intent(text)
+
+
+def _has_add_intent(text: str) -> bool:
+    n = _norm(text)
+    patterns = [
+        r"\bekle+\b",
+        r"\bekler\b",
+        r"\bekler\s+misn\b",
+        r"\bekleyebilir(?:\s*misin|msin)?\b",
+        r"\bekleyin\b",
+        r"\bekleyelim\b",
+        r"\bteklif(?:e|ime)?\s+ekle\b",
+        r"\bsepete\s+(?:ekle|at)\b",
+        r"\bteklifine\s+koy\b",
+        r"\bbunu\s+koy\b",
+        r"\bdahil\s+et\b",
+        r"\bilave\s+et\b",
+        r"\blisteye\s+ekle\b",
+        r"\balalim\b",
+        r"\bbundan\s+alalim\b",
+        r"\bbunu\s+alalim\b",
+        r"\bbunu\s+yaz\b",
+        r"\burunu\s+yaz\b",
+        r"\bteklifime\s+yaz\b",
+    ]
+    return any(re.search(pattern, n) for pattern in patterns)
+
+
+def _has_product_signal(text: str) -> bool:
+    n = _norm(text)
+    signals = [
+        "prd-",
+        "bluescan",
+        "blue scan",
+        "redscan",
+        "greenscan",
+        "blueprint",
+        "qr",
+        "barkod",
+        "barkot",
+        "okuyucu",
+        "okucu",
+        "scanner",
+        "scaner",
+        "tarayici",
+        "yazici",
+        "printer",
+        "fis yazici",
+        "etiket",
+        "label",
+        "terminal",
+        "handheld",
+        "android terminal",
+        "yazilim",
+        "lisans",
+        "software",
+        "kurulum",
+        "servis",
+        "egitim",
+        "entegrasyon",
+        "kilif",
+        "adaptor",
+        "sarj",
+        "batarya",
+        "kablo",
+        "kablosuz",
+        "bluetooth",
+        "2d",
+    ]
+    return any(signal in n for signal in signals)
+
+
+def _is_recommendation_request(text: str) -> bool:
+    n = _norm(text)
+    if not _has_product_signal(text):
+        return False
+    if _is_unclear_short(text):
+        return False
+    return _price_limit(text) is not None or _has_add_intent(text) or _is_recommendation_only(text) or any(k in n for k in ["stokta", "uygun fiyatli", "altinda", "alti", "kadar"])
+
+
+def _is_unclear_short(text: str) -> bool:
+    n = _norm(text)
+    return n in {"qr", "okuyucu", "9000", "stok", "blue", "barkod", "yazici", "terminal"}
 
 
 def _is_smalltalk(text: str) -> bool:
@@ -105,8 +204,14 @@ def _has_business_signal(text: str) -> bool:
         "sarj",
         "şarj",
         "iade",
+        "barkot",
+        "okucu",
+        "scanner",
+        "scaner",
+        "terminal",
+        "printer",
     ]
-    return any(signal in n for signal in signals)
+    return any(signal in n for signal in signals) or _price_limit(text) is not None
 
 
 def _select_product_for_question(text: str, products: list[dict]) -> dict | None:
@@ -179,7 +284,7 @@ def _search_query(text: str) -> str:
         return "RedScan Mini cep tipi okuyucu"
     if "rugged" in n:
         return "rugged okuyucu"
-    if "kablosuz" in n or "qr" in n or "bluescan air" in n:
+    if any(k in n for k in ["kablosuz", "qr", "barkod", "barkot", "okuyucu", "okucu", "scanner", "scaner", "tarayici", "bluescan air", "blue scan"]):
         return "BlueScan Air kablosuz QR barkod okuyucu"
     if "4g" in n:
         return "4g el terminali"
@@ -189,6 +294,10 @@ def _search_query(text: str) -> str:
         return "şube senkron"
     if "ethernet" in n or "fiş yazıcı" in n or "fis yazici" in n:
         return "ethernet fiş yazıcı"
+    if any(k in n for k in ["etiket yazici", "label printer"]):
+        return "etiket yazıcı"
+    if any(k in n for k in ["yazici", "printer"]):
+        return "fiş yazıcı"
     if "koruyucu" in n or "kılıf" in n or "kilif" in n:
         return "koruyucu kılıf"
     if "araç şarj" in n or "arac sarj" in n:
@@ -198,6 +307,25 @@ def _search_query(text: str) -> str:
     if "kurulum" in n:
         return "yerinde kurulum"
     return text
+
+
+def _clarification_text(text: str) -> str:
+    n = _norm(text)
+    if any(k in n for k in ["qr", "okuyucu", "barkod", "barkot"]):
+        return "QR barkod okuyucu hakkında bilgi mi almak istersiniz, uygun ürün önerisi mi istersiniz, yoksa teklife eklememi mi istersiniz?"
+    return "Tam olarak hangi ürünü veya işlemi istediğinizi netleştirebilir misiniz? Örneğin fiyat/stok bilgisi mi öğrenmek istiyorsunuz, ürün önerisi mi istiyorsunuz, yoksa teklife eklememi mi istiyorsunuz?"
+
+
+def _policy_answer(topic: str, entries: list[dict]) -> str:
+    if not entries:
+        return "Bu politika için kaynaklı bir kayıt bulamadım; teklifinizde değişiklik yapılmadı."
+    if topic == "return_policy":
+        return " ".join(entry["body"] for entry in entries[:2]) + " Bu soru yalnızca bilgi amaçlıdır; teklifinizde değişiklik yapılmadı."
+    if topic == "delivery_policy":
+        return entries[0]["body"] + " Bu bilgiye göre teklifinizde değişiklik yapılmadı."
+    if topic == "warranty":
+        return entries[0]["body"] + " Bu bilgiye göre teklifinizde değişiklik yapılmadı."
+    return entries[0]["body"] + " Teklif üzerinde değişiklik yapılmadı."
 
 
 def _log_tool(db: Session, session_id: str, message_id: str, sequence_no: int, tool_name: str, input_json: dict, result, quote_id: str | None):
@@ -414,7 +542,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             pending.status = "cancelled"
             db.commit()
             actions.append("Bekleyen işlem iptal edildi; teklif üzerinde değişiklik yapılmadı.")
-        elif req.require_confirmation and pending and _is_confirmation(req.message):
+        elif req.require_confirmation and pending and _is_bare_confirmation(req.message):
             if pending.action_type == "add":
                 runner.run(
                     "add_to_quote",
@@ -434,10 +562,12 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
                 actions.append("Onayladığınız ürün teklifinize eklendi.")
             else:
                 actions.append("Bu bekleyen işlem tipi için uygulama desteği yok; teklif değişmedi.")
-        elif req.require_confirmation and _is_confirmation(req.message) and not pending:
+        elif req.require_confirmation and _is_bare_confirmation(req.message) and not pending:
             actions.append("Onaylayabileceğim bekleyen bir işlem bulamadım. Ürün veya teklif isteğinizi kısaca yazabilirsiniz.")
         elif req.require_confirmation and _is_smalltalk(req.message):
             actions.append("Merhaba. Ürün, stok, fiyat, garanti, teslimat veya açık teklifiniz hakkında kaynaklı cevap verebilirim.")
+        elif req.require_confirmation and _is_unclear_short(req.message):
+            actions.append(_clarification_text(req.message))
         elif req.require_confirmation and _is_product_question(req.message):
             search = runner.run("search_products", {"query": _search_query(req.message), "locale": "tr", "filters": {"in_stock_only": False}, "limit": 5})
             product = _select_product_for_question(req.message, search.data)
@@ -455,14 +585,14 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
                 )
             else:
                 actions.append("Bu bilgi ürün kataloğunda bulunmuyor.")
-        elif req.require_confirmation and (_is_recommendation_only(req.message) or "ekle" in n) and ("kablosuz" in n or "qr" in n or "barkod okuyucu" in n):
+        elif req.require_confirmation and _is_recommendation_request(req.message):
             limit = _price_limit(req.message)
-            search = runner.run("search_products", {"query": "BlueScan Air kablosuz QR barkod okuyucu", "locale": "tr", "filters": {"max_price_try": limit, "in_stock_only": True}, "limit": 5})
+            search = runner.run("search_products", {"query": _search_query(req.message), "locale": "tr", "filters": {"max_price_try": limit, "in_stock_only": True}, "limit": 5})
             candidates = [item for item in search.data if item["stock_qty"] > 0 and (limit is None or item["price_try"] <= limit)]
             if not candidates:
                 runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "price_ceiling", "limit": 1})
                 limit_text = f"{int(limit):,}".replace(",", ".") if limit is not None else "belirttiğiniz limit"
-                actions.append(f"{limit_text} TL altında stokta kablosuz QR barkod okuyucu bulamadım.")
+                actions.append(f"{limit_text} TL altında stokta uygun ürün bulamadım. Teklifinize ürün eklenmedi.")
             else:
                 product = candidates[0]
                 _save_pending(
@@ -476,8 +606,9 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
                     max_price_try=limit,
                     allow_wait=_allow_wait(req.message),
                 )
+                limit_intro = f"{int(limit):,} TL altında ".replace(",", ".") if limit is not None else ""
                 actions.append(
-                    f"Uygun ürün buldum: {product['name_tr']}. Fiyatı {product['price_try']:.0f} TL, stok {product['stock_qty']} adet. "
+                    f"{limit_intro}stokta uygun bir ürün buldum: {product['name_tr']}. Fiyatı {product['price_try']:.0f} TL, stok {product['stock_qty']} adet. "
                     "Bu ürünü teklifinize eklememi ister misiniz?"
                 )
         elif "redscan mini" in n or ("cep tipi" in n and "değiştir" not in n and "degistir" not in n):
@@ -577,12 +708,12 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
         else:
             if topic:
                 limit = 2 if topic in {"return_policy", "delivery_policy"} else 1
-                runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": topic, "limit": limit})
+                knowledge = runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": topic, "limit": limit})
                 if llm_unavailable and any(k in n for k in ["teklif", "hangi ürün", "hangi urun", "donanım", "donanim"]):
                     runner.run("get_quote", {"quote_id": req.quote_id})
                     runner.run("get_knowledge_entries", {"query": "fallback", "locale": "tr", "topic": "fallback", "limit": 1})
                     fallback_note = True
-                actions.append("Kaynaklı politika cevabı üretildi; teklif üzerinde değişiklik yapılmadı.")
+                actions.append(_policy_answer(topic, knowledge.data))
             else:
                 runner.run("get_quote", {"quote_id": req.quote_id})
                 if req.require_confirmation and not _has_business_signal(req.message):
