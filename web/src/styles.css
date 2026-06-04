@@ -102,9 +102,35 @@ button {
   min-height: 40px;
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .iconButton {
   background: #294047;
   color: #fff;
+}
+
+.sidebarForm {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.sidebarForm strong {
+  font-size: 13px;
+}
+
+.checkboxLabel {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkboxLabel input {
+  width: auto;
 }
 
 .tabs {

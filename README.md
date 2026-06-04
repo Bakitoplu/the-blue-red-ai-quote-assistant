@@ -72,6 +72,10 @@ curl -X POST http://127.0.0.1:8000/seed/reset
 - `GET /knowledge`
 - `POST /knowledge`
 - `PUT /knowledge/{knowledge_id}`
+- `GET /customers`
+- `POST /customers`
+- `GET /customers/{customer_id}/quotes`
+- `POST /quotes`
 - `GET /quotes/{quote_id}`
 - `GET /tool-call-logs`
 - `GET /sessions/{session_id}/tool-calls`
@@ -88,7 +92,7 @@ npm install
 npm run dev
 ```
 
-Web admin paneli gerçek backend API’ye bağlıdır. Sol menü:
+Web admin paneli gerçek backend API’ye bağlıdır. Kullanıcı önce müşteri seçer; teklif dropdown’u sadece seçili müşteriye ait teklifleri gösterir. Yeni müşteri eklenebilir ve seçili müşteri için yeni draft teklif oluşturulabilir. Sol menü:
 
 - Sohbet: ChatGPT benzeri kullanıcı/asistan balonları, streaming cevap, sade kaynak listesi
 - Teklif: kalıcı draft state, satır toplamları ve `[-] [quantity] [+]` kontrolleri
@@ -106,7 +110,7 @@ npm install
 npm run start
 ```
 
-Expo uygulaması backend’e bağlanır, chat mesajı gönderir, stream cevabını chat balonunda biriktirir, sade kaynakları gösterir ve aynı quote state’ini okur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
+Expo uygulaması backend’e bağlanır, müşteri dropdown’undan seçim yapar, sadece seçili müşterinin tekliflerini gösterir ve seçili müşteri için yeni draft teklif oluşturabilir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
 
 ## Retrieval
 
@@ -192,18 +196,20 @@ Retry durumunda aynı `message_id` aynı idempotency key’i üretir; mutation i
 Son test çıktısı:
 
 ```text
-collected 46 items
+collected 48 items
+backend/tests/test_customer_quote_api.py ..
 backend/tests/test_golden_scenarios_full.py ......................
 backend/tests/test_orchestrator.py ....
 backend/tests/test_pricing_rules.py ......
 backend/tests/test_tools.py .....
 backend/tests/test_user_facing_chat.py .........
-46 passed
+48 passed
 ```
 
 Test kapsamı:
 
 - 22 golden senaryonun tool call, source ve DB quote assertion kontrolü
+- Customer create/list, scoped quote listesi ve yeni draft quote API akışı
 - Product Q&A mutasyonsuz cevapları
 - Confirmation/pending action akışı
 - Fiyat limiti safety check

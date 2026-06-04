@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import Base, engine, get_db
-from .models import KnowledgeEntry, Product, ToolCallLog
+from .models import Customer, KnowledgeEntry, Product, Quote, ToolCallLog
 from .orchestrator import plan_and_execute
-from .schemas import ChatStreamRequest, UpdateQuoteItemRequest
+from .schemas import ChatStreamRequest, CustomerCreateRequest, QuoteCreateRequest, UpdateQuoteItemRequest
 from .seed import seed_database
 from .tools import get_quote, update_quote_item
 
@@ -95,6 +95,54 @@ def update_knowledge(knowledge_id: str, payload: dict[str, Any], db: Session = D
             setattr(entry, key, value)
     db.commit()
     return _knowledge_dict(entry)
+
+
+@app.get("/customers")
+def list_customers(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    return [_customer_dict(c) for c in db.scalars(select(Customer).order_by(Customer.customer_id)).all()]
+
+
+@app.post("/customers")
+def create_customer(payload: CustomerCreateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    customer = Customer(
+        customer_id=_next_customer_id(db),
+        name=payload.name,
+        segment="new",
+        city=payload.city,
+        price_tier=payload.price_tier,
+        credit_limit_try=0,
+        allow_backorder=payload.allow_backorder,
+        default_locale="tr",
+        notes="",
+    )
+    db.add(customer)
+    db.commit()
+    return _customer_dict(customer)
+
+
+@app.get("/customers/{customer_id}/quotes")
+def list_customer_quotes(customer_id: str, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    if not db.get(Customer, customer_id):
+        raise HTTPException(status_code=404, detail="Müşteri bulunamadı.")
+    stmt = select(Quote).where(Quote.customer_id == customer_id).order_by(Quote.quote_id)
+    return [_quote_summary(q) for q in db.scalars(stmt).all()]
+
+
+@app.post("/quotes")
+def create_quote(payload: QuoteCreateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    if not db.get(Customer, payload.customer_id):
+        raise HTTPException(status_code=400, detail="Müşteri bulunamadı.")
+    quote = Quote(
+        quote_id=_next_quote_id(db),
+        customer_id=payload.customer_id,
+        status="draft",
+        created_by_channel=payload.created_by_channel,
+        currency="TRY",
+        notes=payload.notes,
+    )
+    db.add(quote)
+    db.commit()
+    return get_quote(db, quote.quote_id).data
 
 
 @app.get("/quotes/{quote_id}")
@@ -181,6 +229,50 @@ def _knowledge_dict(k: KnowledgeEntry) -> dict[str, Any]:
         "applies_to": k.applies_to,
         "effective_from": str(k.effective_from),
     }
+
+
+def _customer_dict(c: Customer) -> dict[str, Any]:
+    return {
+        "customer_id": c.customer_id,
+        "name": c.name,
+        "company_name": c.name,
+        "city": c.city,
+        "location": c.city,
+        "segment": c.segment,
+        "price_tier": c.price_tier,
+        "allow_backorder": c.allow_backorder,
+        "default_locale": c.default_locale,
+        "notes": c.notes,
+    }
+
+
+def _quote_summary(q: Quote) -> dict[str, Any]:
+    return {
+        "quote_id": q.quote_id,
+        "customer_id": q.customer_id,
+        "status": q.status,
+        "created_by_channel": q.created_by_channel,
+        "currency": q.currency,
+        "notes": q.notes,
+    }
+
+
+def _next_customer_id(db: Session) -> str:
+    existing = set(db.scalars(select(Customer.customer_id)).all())
+    for idx in range(1, 10000):
+        candidate = f"CUST-NEW-{idx:03d}"
+        if candidate not in existing:
+            return candidate
+    raise ValueError("Yeni müşteri ID üretilemedi.")
+
+
+def _next_quote_id(db: Session) -> str:
+    existing = set(db.scalars(select(Quote.quote_id)).all())
+    for idx in range(1, 10000):
+        candidate = f"Q-NEW-{idx:03d}"
+        if candidate not in existing:
+            return candidate
+    raise ValueError("Yeni teklif ID üretilemedi.")
 
 
 def _log_dict(log: ToolCallLog) -> dict[str, Any]:

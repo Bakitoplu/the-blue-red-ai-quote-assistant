@@ -62,6 +62,19 @@ class ChatStreamRequest(BaseModel):
     mode: str = "user"
 
 
+class CustomerCreateRequest(BaseModel):
+    name: str
+    city: str = ""
+    price_tier: str = "standard"
+    allow_backorder: bool = False
+
+
+class QuoteCreateRequest(BaseModel):
+    customer_id: str
+    created_by_channel: str = "web"
+    notes: str = ""
+
+
 class ToolResult(BaseModel):
     data: Any
     source_ids: list[str] = Field(default_factory=list)

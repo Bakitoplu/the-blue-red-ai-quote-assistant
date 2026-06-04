@@ -10,6 +10,11 @@ function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
 }
 
+function customerLabel(customer) {
+  const backorder = customer.allow_backorder ? 'backorder uygun' : 'backorder yok';
+  return `${customer.name} · ${customer.customer_id} · ${customer.city || '-'} · ${customer.price_tier} · ${backorder}`;
+}
+
 async function readSse(response, onEvent) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -33,6 +38,8 @@ function App() {
   const [quoteId, setQuoteId] = useState('Q-1002');
   const [customerId, setCustomerId] = useState('CUST-ANK-002');
   const [quote, setQuote] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [customerQuotes, setCustomerQuotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -43,10 +50,31 @@ function App() {
   const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
   const [streamSources, setStreamSources] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
 
   async function loadQuote() {
+    if (!quoteId) {
+      setQuote(null);
+      return;
+    }
     const res = await fetch(`${API}/quotes/${quoteId}`);
     setQuote(await res.json());
+  }
+
+  async function loadCustomers() {
+    const res = await fetch(`${API}/customers`);
+    setCustomers(await res.json());
+  }
+
+  async function loadCustomerQuotes(nextCustomerId = customerId) {
+    if (!nextCustomerId) {
+      setCustomerQuotes([]);
+      return [];
+    }
+    const res = await fetch(`${API}/customers/${nextCustomerId}/quotes`);
+    const data = await res.json();
+    setCustomerQuotes(data);
+    return data;
   }
 
   async function loadProducts() {
@@ -65,15 +93,32 @@ function App() {
   }
 
   useEffect(() => {
-    loadQuote();
+    loadCustomers();
     loadProducts();
     loadKnowledge();
     loadLogs();
+  }, []);
+
+  useEffect(() => {
+    loadCustomerQuotes(customerId).then((quotes) => {
+      if (quoteId && !quotes.some((item) => item.quote_id === quoteId)) {
+        setQuoteId('');
+        setQuote(null);
+      }
+    });
+  }, [customerId]);
+
+  useEffect(() => {
+    loadQuote();
   }, [quoteId]);
 
   async function sendMessage() {
     const trimmed = message.trim();
     if (!trimmed || busy) return;
+    if (!customerId || !quoteId) {
+      setMessages((prev) => [...prev, { id: `warn-${Date.now()}`, role: 'assistant', text: 'Lütfen önce müşteri ve teklif seçin.', sources: [] }]);
+      return;
+    }
     setBusy(true);
     setEvents([]);
     setStreamSources([]);
@@ -117,6 +162,34 @@ function App() {
       body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'web quantity control' }),
     });
     await loadQuote();
+  }
+
+  async function createCustomer() {
+    if (!newCustomer.name.trim()) return;
+    const res = await fetch(`${API}/customers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCustomer),
+    });
+    const created = await res.json();
+    await loadCustomers();
+    setCustomerId(created.customer_id);
+    setQuoteId('');
+    setQuote(null);
+    setNewCustomer({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
+  }
+
+  async function createQuote() {
+    if (!customerId) return;
+    const res = await fetch(`${API}/quotes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customer_id: customerId, created_by_channel: 'web' }),
+    });
+    const created = await res.json();
+    await loadCustomerQuotes(customerId);
+    setQuoteId(created.quote_id);
+    setQuote(created);
   }
 
   function newProduct() {
@@ -185,21 +258,48 @@ function App() {
           </div>
         </div>
         <label>
-          Quote ID
-          <select value={quoteId} onChange={(e) => setQuoteId(e.target.value)}>
-            {['Q-1001', 'Q-1002', 'Q-1003', 'Q-1004', 'Q-1005', 'Q-2001', 'Q-2002', 'Q-2003', 'Q-2004', 'Q-2005'].map((id) => (
-              <option key={id}>{id}</option>
+          Müşteri
+          <select value={customerId} onChange={(e) => {
+            setCustomerId(e.target.value);
+            setQuoteId('');
+            setQuote(null);
+          }}>
+            {customers.map((customer) => (
+              <option key={customer.customer_id} value={customer.customer_id}>{customerLabel(customer)}</option>
             ))}
           </select>
         </label>
         <label>
-          Customer ID
-          <input value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
+          Teklif
+          <select value={quoteId} onChange={(e) => setQuoteId(e.target.value)} disabled={!customerId}>
+            <option value="">{customerId ? 'Teklif seçin' : 'Önce müşteri seçin'}</option>
+            {customerQuotes.map((item) => (
+              <option key={item.quote_id} value={item.quote_id}>{item.quote_id} · {item.status}</option>
+            ))}
+          </select>
         </label>
+        <button className="iconButton" onClick={createQuote} disabled={!customerId} title="Yeni teklif oluştur">
+          <Database size={18} />
+          Yeni Teklif
+        </button>
         <button className="iconButton" onClick={loadQuote} title="Teklifi yenile">
           <RefreshCw size={18} />
           Yenile
         </button>
+        <div className="sidebarForm">
+          <strong>Yeni müşteri</strong>
+          <input placeholder="Müşteri adı" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
+          <input placeholder="Şehir" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} />
+          <select value={newCustomer.price_tier} onChange={(e) => setNewCustomer({ ...newCustomer, price_tier: e.target.value })}>
+            <option value="standard">standard</option>
+            <option value="partner">partner</option>
+          </select>
+          <label className="checkboxLabel">
+            <input type="checkbox" checked={newCustomer.allow_backorder} onChange={(e) => setNewCustomer({ ...newCustomer, allow_backorder: e.target.checked })} />
+            Backorder uygun
+          </label>
+          <button className="smallAction" onClick={createCustomer} disabled={!newCustomer.name.trim()}>Ekle</button>
+        </div>
         <nav className="tabs">
           {[
             ['chat', Send, 'Sohbet'],
@@ -219,8 +319,8 @@ function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <h2>{quote?.quote_id || quoteId}</h2>
-            <p>{quote?.customer_name || 'Yükleniyor'}</p>
+            <h2>{quote?.quote_id || quoteId || 'Teklif seçilmedi'}</h2>
+            <p>{quote?.customer_name || customers.find((customer) => customer.customer_id === customerId)?.name || 'Müşteri seçilmedi'}</p>
           </div>
           <div className="totals">
             <span>Ara toplam {money(quote?.subtotal_try)}</span>
