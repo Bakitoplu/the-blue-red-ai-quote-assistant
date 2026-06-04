@@ -13,7 +13,7 @@ The Blue Red için kaynaklı, streaming çalışan teklif asistanı. Kullanıcı
 
 ## Architecture
 
-Backend tek doğruluk kaynağıdır. Web ve mobil `GET /quotes/{quote_id}` endpointinden aynı DB state’ini okur. Chat istekleri `POST /chat/stream` ile SSE olarak akar; her tool çağrısı `tool_call_logs` tablosuna yazılır.
+Backend tek doğruluk kaynağıdır. Web ve mobil `GET /quotes/{quote_id}` endpointinden aynı DB state’ini okur. Chat istekleri `POST /chat/stream` ile SSE olarak akar; her tool çağrısı `tool_call_logs` tablosuna yazılır. Normal web/mobil chat deneyiminde teklif mutasyonları önce onay ister; golden/contract test modunda `require_confirmation=false` ile doğrudan tool contract davranışı doğrulanır.
 
 ```text
 React Web ─┐
@@ -22,7 +22,7 @@ Expo App ──┘      │
                   └── deterministic router + quote tools + SSE
 ```
 
-Ana sistem LLM’siz deterministic çalışır. `LLM_ENABLED=false` varsayılandır. LLM ileride yalnızca cevap metnini zenginleştiren opsiyonel bir response writer olarak eklenebilir; fiyat, stok, idempotency ve mutasyon kararları backend kurallarıyla verilir.
+Ana sistem güvenli deterministic fallback ile çalışır. `LLM_ENABLED=false` varsayılandır. `LLM_ENABLED=true` ve `OPENAI_API_KEY` verildiğinde LLM doğal Türkçe response writer/intent helper olarak kullanılabilir; ürün, fiyat, stok, kaynak ve mutasyon kararları backend safety layer’dan geçer.
 
 ## Setup
 
@@ -39,6 +39,7 @@ DATABASE_URL=postgresql+psycopg://tbr:tbr@localhost:5432/tbr
 DATASET_DIR=the_blue_red_candidate_case_dataset
 AUTO_SEED=true
 LLM_ENABLED=false
+LLM_MODEL=gpt-4.1-mini
 OPENAI_API_KEY=
 VITE_API_URL=http://127.0.0.1:8000
 EXPO_PUBLIC_API_URL=http://127.0.0.1:8000
@@ -77,6 +78,7 @@ curl -X POST http://127.0.0.1:8000/seed/reset
 - `POST /chat/stream`
 - `GET /chat/stream`
 - `POST /seed/reset`
+- `POST /quotes/{quote_id}/items/{product_id}/quantity`
 
 ## Web
 
@@ -86,14 +88,15 @@ npm install
 npm run dev
 ```
 
-Web admin paneli gerçek backend API’ye bağlıdır:
+Web admin paneli gerçek backend API’ye bağlıdır. Sol menü:
 
+- Sohbet: ChatGPT benzeri kullanıcı/asistan balonları, streaming cevap, sade kaynak listesi
+- Teklif: kalıcı draft state, satır toplamları ve `[-] [quantity] [+]` kontrolleri
 - Ürün listeleme, ekleme ve düzenleme
 - Knowledge listeleme, ekleme ve düzenleme
-- Teklif görüntüleme
-- Chat test ekranı
-- SSE event görünümü
 - Kalıcı tool-call log viewer
+
+Raw tool events ve JSON debug bilgileri sadece Loglar ekranında gösterilir; müşteri sohbetine karışmaz.
 
 ## Mobile
 
@@ -103,7 +106,7 @@ npm install
 npm run start
 ```
 
-Expo uygulaması backend’e bağlanır, chat mesajı gönderir, stream cevabını ve kaynakları gösterir, aynı quote state’ini okur.
+Expo uygulaması backend’e bağlanır, chat mesajı gönderir, stream cevabını chat balonunda biriktirir, sade kaynakları gösterir ve aynı quote state’ini okur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
 
 ## Retrieval
 
@@ -121,7 +124,7 @@ Knowledge retrieval `topic`, `title`, `body`, `source` ve `applies_to` alanları
 
 ## Tool Orchestration
 
-Router LLM tool-calling’e bağımlı değildir. Türkçe niyetleri deterministic olarak sınıflandırır, gerekli tool sırasını çalıştırır ve her çağrıyı loglar.
+Router LLM tool-calling’e bağımlı değildir. Türkçe niyetleri deterministic olarak sınıflandırır, gerekli tool sırasını çalıştırır ve her çağrıyı loglar. Product Q&A mesajları mutasyonsuz cevaplanır; fiyat, stok, QR desteği, garanti ve teslimat soruları `products.json` ve gerekirse `knowledge_entries.json` kaynaklarından yanıtlanır.
 
 Zorunlu tool fonksiyonları:
 
@@ -133,6 +136,19 @@ Zorunlu tool fonksiyonları:
 - `replace_with_alternative`
 
 Fiyat limiti otomatik ekleme/değiştirmede kesin filtredir. Stok `0` ürünler kullanıcı açıkça beklemeyi kabul etmeden ve müşteri `allow_backorder=true` olmadan eklenmez.
+
+Normal user-facing mode:
+
+- `require_confirmation=true`
+- Ürün önerisi veya “ekle” talebi önce ürün özeti ve onay sorusu üretir.
+- Onay kelimeleri: `evet`, `tamam`, `onaylıyorum`, `ekle`, `uygula`, `olur`.
+- İptal kelimeleri: `hayır`, `iptal`, `vazgeç`, `ekleme`, `istemiyorum`.
+- Pending action DB’de `pending_actions` tablosunda tutulur.
+
+Contract/golden mode:
+
+- `require_confirmation=false`
+- Golden senaryolardaki doğrudan tool-call/mutation beklentileri korunur.
 
 ## Quote Mutation Model
 
@@ -161,7 +177,7 @@ SSE eventleri:
 - `message_start`: `session_id`, `message_id`
 - `tool_call_start`: tool adı, input, `sequence_no`
 - `tool_call_result`: success/error, replay bilgisi, `quote_delta`
-- `source`: `product_id` veya `knowledge_id`
+- `source`: `product_id` veya `knowledge_id` ve müşteri-dostu `label`
 - `text_delta`: Türkçe cevap parçaları
 - `done` veya `controlled_error`
 
@@ -170,23 +186,28 @@ Retry durumunda aynı `message_id` aynı idempotency key’i üretir; mutation i
 ## Tests
 
 ```bash
-.venv/bin/pytest backend/tests
+.venv/bin/pytest backend/tests --basetemp=/Users/bakitoplu/Desktop/case/.pytest_tmp -p no:cacheprovider
 ```
 
 Son test çıktısı:
 
 ```text
-collected 37 items
+collected 46 items
 backend/tests/test_golden_scenarios_full.py ......................
 backend/tests/test_orchestrator.py ....
 backend/tests/test_pricing_rules.py ......
 backend/tests/test_tools.py .....
-37 passed
+backend/tests/test_user_facing_chat.py .........
+46 passed
 ```
 
 Test kapsamı:
 
 - 22 golden senaryonun tool call, source ve DB quote assertion kontrolü
+- Product Q&A mutasyonsuz cevapları
+- Confirmation/pending action akışı
+- Fiyat limiti safety check
+- Backorder kuralları
 - Retrieval ve grounding
 - Add/update/replace mutasyonları
 - Duplicate ve idempotency
@@ -205,8 +226,9 @@ Test kapsamı:
 9.000 TL altında, stokta olan kablosuz QR barkod okuyucu ekler misin?
 ```
 
-5. `PRD-BC-110` aktif satır olarak eklenir, SSE tool eventleri akar ve tool-call logları web panelde görünür.
-6. Mobilde aynı `quote_id` açıldığında aynı kalıcı teklif durumu okunur.
+5. Normal user mode’da asistan uygun ürünü önerir ve onay ister.
+6. “Evet ekle” mesajından sonra `PRD-BC-110` aktif satır olarak eklenir.
+7. Mobilde aynı `quote_id` açıldığında aynı kalıcı teklif durumu okunur.
 
 ## Security
 

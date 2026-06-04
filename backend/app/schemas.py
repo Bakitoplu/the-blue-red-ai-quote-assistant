@@ -31,6 +31,7 @@ class AddToQuoteRequest(BaseModel):
     idempotency_key: str
     source_message_id: str
     allow_wait: bool = False
+    max_price_try: float | None = None
 
 
 class UpdateQuoteItemRequest(BaseModel):
@@ -57,6 +58,8 @@ class ChatStreamRequest(BaseModel):
     session_id: str | None = None
     message_id: str | None = None
     message: str
+    require_confirmation: bool = True
+    mode: str = "user"
 
 
 class ToolResult(BaseModel):
@@ -64,4 +67,3 @@ class ToolResult(BaseModel):
     source_ids: list[str] = Field(default_factory=list)
     quote_delta: dict = Field(default_factory=dict)
     replayed: bool = False
-

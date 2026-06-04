@@ -130,3 +130,22 @@ class ChatMessage(Base):
     role: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PendingAction(Base):
+    __tablename__ = "pending_actions"
+    pending_action_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: f"PEND-{uuid4().hex[:12]}")
+    session_id: Mapped[str] = mapped_column(String, nullable=False)
+    quote_id: Mapped[str] = mapped_column(String, nullable=False)
+    customer_id: Mapped[str] = mapped_column(String, nullable=False)
+    action_type: Mapped[str] = mapped_column(String, nullable=False)
+    product_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    from_product_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    to_product_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    max_price_try: Mapped[float | None] = mapped_column(Numeric, nullable=True)
+    allow_wait: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    source_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

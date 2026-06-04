@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     dataset_dir: Path = Path(__file__).resolve().parents[2] / "the_blue_red_candidate_case_dataset"
     auto_seed: bool = True
     llm_enabled: bool = False
+    llm_model: str = "gpt-4.1-mini"
     openai_api_key: str = ""
 
     class Config:

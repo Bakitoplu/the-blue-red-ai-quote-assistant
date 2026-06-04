@@ -15,7 +15,10 @@
 - OK: Knowledge CRUD/list endpointleri vardır.
 - OK: Tool-call logları DB’de tutulur ve endpoint/web log viewer ile görülebilir.
 - OK: LLM kapalıyken kaynaklı cevap ve deterministic tool orchestration çalışır.
+- OK: LLM açıkken optional response-writer yolu vardır; fiyat/stok/mutasyon kararları deterministic safety layer’dan geçer.
 - OK: Web ve mobil aynı quote endpointini kullanır.
+- OK: Web ve mobil chat deneyimi teklif mutasyonlarında önce confirmation/pending action kullanır.
+- OK: Web ve mobil teklif ekranlarında quantity control vardır; quantity=0 satırı inactive yapar.
 - OK: Mutasyon tool’ları gerçek DB state’ini değiştirir.
 - OK: Backend testleri gerçek davranışı doğrular.
 - OK: README, AI_USAGE ve KNOWN_LIMITATIONS mevcut.
@@ -29,6 +32,7 @@
 - OK: `add_to_quote` DB mutasyonu yapar, aktif satırı birleştirir, idempotency replay’i korur ve stok/backorder kuralını uygular.
 - OK: `update_quote_item` miktar günceller; `quantity=0` için `inactive` durumunu kullanır.
 - OK: `replace_with_alternative` eski satırı `replaced` yapar, yeni stoklu/fiyat uygun ürünü aktif ekler ve idempotency uygular.
+- OK: `search_products` yanıtı brand, delivery_days, warranty_months, aliases, substitute_product_ids ve notes alanlarını içerir.
 
 ## Golden Scenario Coverage
 
@@ -38,6 +42,9 @@
 - OK: expected_sources kontrol edilir.
 - OK: quote assertions gerçek DB state’i üzerinden doğrulanır.
 - OK: Streaming retry/idempotency tekrar miktar artırmaz.
+- OK: Product Q&A soruları mutasyonsuz cevaplanır.
+- OK: User-facing öneri/ekleme akışı önce pending action oluşturur, onaydan sonra mutasyon uygular.
+- OK: 1.000 TL ve 9 bin TL gibi fiyat limitleri parse edilir ve son add safety check ile korunur.
 
 ## Pricing
 
@@ -50,8 +57,10 @@
 
 ## Verification
 
-- OK: `.venv/bin/pytest backend/tests` -> 37 passed.
+- OK: `.venv/bin/pytest backend/tests --basetemp=/Users/bakitoplu/Desktop/case/.pytest_tmp -p no:cacheprovider` -> 46 passed.
 - OK: `python3 -m py_compile backend/app/*.py`.
 - OK: `docker compose config`.
-- NEEDS ATTENTION: `docker compose up --build -d` requires a running local Docker daemon; the daemon socket was not available in this environment.
-- NEEDS ATTENTION: `npm install` for web/mobile did not complete in this environment; package files and run scripts are present for standard Node environments.
+- OK: `docker compose up --build -d`.
+- OK: Docker web image runs `npm install` and `npm run build`.
+- OK: `curl -s http://127.0.0.1:8000/health` -> `{"status":"ok"}`.
+- OK: In-app browser smoke verified Sohbet confirmation flow and Teklif quantity controls.

@@ -23,6 +23,7 @@ def test_golden_wireless_add_under_limit(db):
             session_id="S1",
             message_id="SCN-001",
             message="9.000 TL altında, stokta olan kablosuz QR barkod okuyucu ekler misin?",
+            require_confirmation=False,
         ),
     )
     assert tool_names(db, "SCN-001")[:2] == ["search_products", "add_to_quote"]
@@ -42,6 +43,7 @@ def test_golden_policy_is_mutation_free(db):
             session_id="S7",
             message_id="SCN-007",
             message="Aktive edilmiş yazılım lisansını iade edebilir miyiz?",
+            require_confirmation=False,
         ),
     )
     assert tool_names(db, "SCN-007") == ["get_knowledge_entries"]
@@ -60,6 +62,7 @@ def test_golden_fallback_does_not_mutate(db):
             session_id="S9",
             message_id="SCN-009",
             message="İade süresi nedir ve teklifimde hangi ürün var?",
+            require_confirmation=False,
         ),
     )
     assert "KNE-FALL-001" in events or "Yedek modda" in events
@@ -78,6 +81,7 @@ def test_repeat_same_message_id_increments_once(db):
         session_id="S10",
         message_id="SCN-010",
         message="Kablosuz barkod okuyucudan 1 tane daha ekle.",
+        require_confirmation=False,
     )
     drain(db, req)
     drain(db, req)

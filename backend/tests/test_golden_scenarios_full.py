@@ -20,6 +20,8 @@ def drain(db, scenario):
         session_id=f"SES-{scenario['scenario_id']}",
         message_id=scenario["scenario_id"],
         message=scenario["user_message"],
+        require_confirmation=False,
+        mode="contract",
     )
     first = "".join(plan_and_execute(db, req))
     second = ""

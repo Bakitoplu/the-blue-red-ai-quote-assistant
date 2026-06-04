@@ -28,7 +28,7 @@ async function readSse(response, onEvent) {
 }
 
 function App() {
-  const [tab, setTab] = useState('quote');
+  const [tab, setTab] = useState('chat');
   const [quoteId, setQuoteId] = useState('Q-1002');
   const [customerId, setCustomerId] = useState('CUST-ANK-002');
   const [quote, setQuote] = useState(null);
@@ -39,7 +39,8 @@ function App() {
   const [knowledgeForm, setKnowledgeForm] = useState(null);
   const [message, setMessage] = useState('9.000 TL altında, stokta olan kablosuz QR barkod okuyucu ekler misin?');
   const [events, setEvents] = useState([]);
-  const [answer, setAnswer] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [streamSources, setStreamSources] = useState([]);
   const [busy, setBusy] = useState(false);
 
   async function loadQuote() {
@@ -72,7 +73,10 @@ function App() {
   async function sendMessage() {
     setBusy(true);
     setEvents([]);
-    setAnswer('');
+    setStreamSources([]);
+    const userMessage = { role: 'user', text: message, sources: [] };
+    const assistantId = `assistant-${Date.now()}`;
+    setMessages((prev) => [...prev, userMessage, { id: assistantId, role: 'assistant', text: '', sources: [] }]);
     const res = await fetch(`${API}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,15 +87,32 @@ function App() {
         session_id: `WEB-${quoteId}`,
         message_id: `WEB-${Date.now()}`,
         message,
+        require_confirmation: true,
       }),
     });
     await readSse(res, (event, data) => {
       setEvents((prev) => [{ event, data }, ...prev].slice(0, 40));
-      if (event === 'text_delta') setAnswer((prev) => prev + data.text);
+      if (event === 'text_delta') {
+        setMessages((prev) => prev.map((item) => item.id === assistantId ? { ...item, text: item.text + data.text } : item));
+      }
+      if (event === 'source') {
+        const source = { id: data.source_id, label: data.label || data.source_id };
+        setStreamSources((prev) => prev.some((item) => item.id === source.id) ? prev : [...prev, source]);
+        setMessages((prev) => prev.map((item) => item.id === assistantId && !item.sources?.some((s) => s.id === source.id) ? { ...item, sources: [...(item.sources || []), source] } : item));
+      }
     });
     await loadQuote();
     await loadLogs();
     setBusy(false);
+  }
+
+  async function setQuantity(item, quantity) {
+    await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'web quantity control' }),
+    });
+    await loadQuote();
   }
 
   function newProduct() {
@@ -178,6 +199,7 @@ function App() {
         <nav className="tabs">
           {[
             ['quote', Database, 'Teklif'],
+            ['chat', Send, 'Sohbet'],
             ['products', Package, 'Ürünler'],
             ['knowledge', BookOpen, 'Bilgi'],
             ['logs', ScrollText, 'Loglar'],
@@ -202,7 +224,7 @@ function App() {
           </div>
         </header>
 
-        {tab === 'quote' && <section className="grid">
+        {tab === 'quote' && <section className="adminGrid single">
           <div className="panel quotePanel">
             <div className="panelTitle">
               <Database size={18} />
@@ -227,7 +249,13 @@ function App() {
                       <span>{item.product_id}</span>
                     </td>
                     <td>{item.status}</td>
-                    <td>{item.quantity}</td>
+                    <td>
+                      <div className="qtyControl">
+                        <button onClick={() => setQuantity(item, item.quantity - 1)}>-</button>
+                        <span>{item.quantity}</span>
+                        <button onClick={() => setQuantity(item, item.quantity + 1)} disabled={item.status !== 'active'}>+</button>
+                      </div>
+                    </td>
                     <td>{money(item.unit_price_try)}</td>
                     <td>{item.discount_rule_id || '-'}</td>
                     <td>{money(item.line_total_try)}</td>
@@ -236,33 +264,33 @@ function App() {
               </tbody>
             </table>
           </div>
+        </section>}
 
+        {tab === 'chat' && <section className="chatLayout">
           <div className="panel chatPanel">
             <div className="panelTitle">
               <Send size={18} />
-              Chat
+              Sohbet
+            </div>
+            <div className="messages">
+              {messages.length === 0 && <div className="empty">Ürün, stok, garanti, teslimat veya teklifiniz hakkında yazabilirsiniz.</div>}
+              {messages.map((item, idx) => (
+                <div className={`bubble ${item.role}`} key={item.id || idx}>
+                  <p>{item.text || '...'}</p>
+                  {item.sources?.length > 0 && (
+                    <div className="sourceList">
+                      <strong>Kaynaklar</strong>
+                      {item.sources.map((source) => <span key={source.id}>{source.id} · {source.label}</span>)}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} />
             <button className="primary" onClick={sendMessage} disabled={busy}>
               <Send size={18} />
               Gönder
             </button>
-            <div className="answer">{answer || 'Yanıt burada akar.'}</div>
-          </div>
-
-          <div className="panel eventPanel">
-            <div className="panelTitle">
-              <ScrollText size={18} />
-              Tool Stream
-            </div>
-            <div className="eventList">
-              {events.map((entry, idx) => (
-                <div className="event" key={idx}>
-                  <strong>{entry.event}</strong>
-                  <code>{JSON.stringify(entry.data)}</code>
-                </div>
-              ))}
-            </div>
           </div>
         </section>}
 

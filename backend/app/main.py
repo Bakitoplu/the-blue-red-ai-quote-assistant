@@ -11,9 +11,9 @@ from .config import get_settings
 from .database import Base, engine, get_db
 from .models import KnowledgeEntry, Product, ToolCallLog
 from .orchestrator import plan_and_execute
-from .schemas import ChatStreamRequest
+from .schemas import ChatStreamRequest, UpdateQuoteItemRequest
 from .seed import seed_database
-from .tools import get_quote
+from .tools import get_quote, update_quote_item
 
 app = FastAPI(title="The Blue Red AI Quote Assistant")
 app.add_middleware(
@@ -102,6 +102,20 @@ def read_quote(quote_id: str, db: Session = Depends(get_db)) -> dict:
     return get_quote(db, quote_id).data
 
 
+@app.post("/quotes/{quote_id}/items/{product_id}/quantity")
+def set_quote_item_quantity(quote_id: str, product_id: str, payload: dict[str, Any], db: Session = Depends(get_db)) -> dict:
+    result = update_quote_item(
+        db,
+        UpdateQuoteItemRequest(
+            quote_id=quote_id,
+            product_id=product_id,
+            quantity=int(payload.get("quantity", 0)),
+            reason=payload.get("reason", "manual quantity control"),
+        ),
+    )
+    return {"result": result.data, "quote": get_quote(db, quote_id).data}
+
+
 @app.get("/tool-call-logs")
 def tool_call_logs(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
     return [_log_dict(log) for log in db.scalars(select(ToolCallLog).order_by(ToolCallLog.id.desc())).all()]
@@ -126,9 +140,10 @@ def chat_stream_get(
     channel: str = "web",
     session_id: str | None = None,
     message_id: str | None = None,
+    require_confirmation: bool = True,
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    req = ChatStreamRequest(quote_id=quote_id, customer_id=customer_id, channel=channel, session_id=session_id, message_id=message_id, message=message)
+    req = ChatStreamRequest(quote_id=quote_id, customer_id=customer_id, channel=channel, session_id=session_id, message_id=message_id, message=message, require_confirmation=require_confirmation)
     return StreamingResponse(plan_and_execute(db, req), media_type="text/event-stream")
 
 
@@ -184,4 +199,3 @@ def _log_dict(log: ToolCallLog) -> dict[str, Any]:
         "quote_delta": log.quote_delta,
         "created_at": log.created_at.isoformat(),
     }
-

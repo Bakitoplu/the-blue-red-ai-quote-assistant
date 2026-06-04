@@ -38,7 +38,13 @@ def product_payload(product: Product, evidence: list[str]) -> dict:
         "price_try": money(product.price_try),
         "stock_qty": product.stock_qty,
         "category": product.category,
+        "brand": product.brand,
+        "delivery_days": product.delivery_days,
+        "warranty_months": product.warranty_months,
         "tags": product.tags,
+        "aliases": product.aliases,
+        "substitute_product_ids": product.substitute_product_ids,
+        "notes": product.notes,
         "match_evidence": evidence,
     }
 
@@ -220,6 +226,8 @@ def add_to_quote(db: Session, req: AddToQuoteRequest) -> ToolResult:
     product = db.get(Product, req.product_id)
     if not quote or not product:
         raise ValueError("Teklif veya ürün bulunamadı.")
+    if req.max_price_try is not None and money(product.price_try) > req.max_price_try:
+        raise ValueError("Ürün fiyat limiti aşıyor; otomatik eklenemez.")
     _ensure_add_allowed(db, quote, product, req.allow_wait)
     active = db.scalar(
         select(QuoteItem).where(
@@ -239,7 +247,7 @@ def add_to_quote(db: Session, req: AddToQuoteRequest) -> ToolResult:
             product_id=product.product_id,
             quantity=req.quantity,
             unit_price_try=product.price_try,
-            status="active",
+            status="backorder" if product.stock_qty <= 0 else "active",
             source_message_id=req.source_message_id,
             idempotency_key=req.idempotency_key,
         )

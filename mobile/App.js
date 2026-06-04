@@ -23,8 +23,7 @@ export default function App() {
   const [customerId, setCustomerId] = useState('CUST-ANK-002');
   const [quote, setQuote] = useState(null);
   const [message, setMessage] = useState("Sahada internet olmayacak; 4G'li el terminali ve offline senkron için gereken lisansı ekle.");
-  const [answer, setAnswer] = useState('');
-  const [sources, setSources] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(false);
 
   async function loadQuote() {
@@ -38,8 +37,8 @@ export default function App() {
 
   async function send() {
     setBusy(true);
-    setAnswer('');
-    setSources([]);
+    const assistantId = `assistant-${Date.now()}`;
+    setMessages((prev) => [...prev, { role: 'user', text: message, sources: [] }, { id: assistantId, role: 'assistant', text: '', sources: [] }]);
     const res = await fetch(`${API}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -50,14 +49,29 @@ export default function App() {
         session_id: `MOB-${quoteId}`,
         message_id: `MOB-${Date.now()}`,
         message,
+        require_confirmation: true,
       }),
     });
     await readSse(res, (event, data) => {
-      if (event === 'text_delta') setAnswer((prev) => prev + data.text);
-      if (event === 'source') setSources((prev) => Array.from(new Set([...prev, data.source_id])));
+      if (event === 'text_delta') {
+        setMessages((prev) => prev.map((item) => item.id === assistantId ? { ...item, text: item.text + data.text } : item));
+      }
+      if (event === 'source') {
+        const source = { id: data.source_id, label: data.label || data.source_id };
+        setMessages((prev) => prev.map((item) => item.id === assistantId && !item.sources?.some((s) => s.id === source.id) ? { ...item, sources: [...(item.sources || []), source] } : item));
+      }
     });
     await loadQuote();
     setBusy(false);
+  }
+
+  async function setQuantity(item, quantity) {
+    await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control' }),
+    });
+    await loadQuote();
   }
 
   return (
@@ -83,6 +97,29 @@ export default function App() {
         <TextInput style={styles.input} value={customerId} onChangeText={setCustomerId} />
 
         <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Sohbet</Text>
+          <View style={styles.messages}>
+            {messages.length === 0 && <Text style={styles.empty}>Ürün, stok, garanti, teslimat veya teklifiniz hakkında yazabilirsiniz.</Text>}
+            {messages.map((item, idx) => (
+              <View key={item.id || idx} style={[styles.bubble, item.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
+                <Text style={item.role === 'user' ? styles.userText : styles.assistantText}>{item.text || '...'}</Text>
+                {item.sources?.length > 0 && (
+                  <View style={styles.sourceBox}>
+                    <Text style={styles.sourceTitle}>Kaynaklar</Text>
+                    {item.sources.map((source) => <Text key={source.id} style={styles.sourceLine}>{source.id} · {source.label}</Text>)}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+          <TextInput style={styles.message} value={message} onChangeText={setMessage} multiline />
+          <TouchableOpacity style={[styles.primary, busy && styles.disabled]} onPress={send} disabled={busy}>
+            <Ionicons name="send" size={18} color="#fff" />
+            <Text style={styles.primaryText}>Gönder</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.panel}>
           <Text style={styles.panelTitle}>Teklif</Text>
           <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
           {(quote?.items || []).map((item) => (
@@ -91,21 +128,18 @@ export default function App() {
                 <Text style={styles.product}>{item.name_tr}</Text>
                 <Text style={styles.meta}>{item.product_id} · {item.status}</Text>
               </View>
-              <Text style={styles.qty}>{item.quantity}x</Text>
+              <View style={styles.qtyControl}>
+                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity - 1)}>
+                  <Text>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.qty}>{item.quantity}</Text>
+                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity + 1)} disabled={item.status !== 'active'}>
+                  <Text>+</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.amount}>{money(item.line_total_try)}</Text>
             </View>
           ))}
-        </View>
-
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Chat</Text>
-          <TextInput style={styles.message} value={message} onChangeText={setMessage} multiline />
-          <TouchableOpacity style={[styles.primary, busy && styles.disabled]} onPress={send} disabled={busy}>
-            <Ionicons name="send" size={18} color="#fff" />
-            <Text style={styles.primaryText}>Gönder</Text>
-          </TouchableOpacity>
-          <Text style={styles.answer}>{answer || 'Yanıt burada görünür.'}</Text>
-          <Text style={styles.sources}>{sources.join(', ')}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -125,17 +159,27 @@ const styles = StyleSheet.create({
   iconButton: { width: 48, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#294047' },
   panel: { backgroundColor: '#fff', borderColor: '#d9e3e7', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
   panelTitle: { fontSize: 16, fontWeight: '800', color: '#172026' },
+  messages: { gap: 10, minHeight: 220 },
+  empty: { color: '#60737c' },
+  bubble: { maxWidth: '86%', borderRadius: 8, padding: 12 },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: '#0f766e' },
+  assistantBubble: { alignSelf: 'flex-start', backgroundColor: '#eef3f5' },
+  userText: { color: '#fff', lineHeight: 20 },
+  assistantText: { color: '#172026', lineHeight: 20 },
+  sourceBox: { marginTop: 8, gap: 4 },
+  sourceTitle: { fontWeight: '800', color: '#455a64', fontSize: 12 },
+  sourceLine: { color: '#455a64', fontSize: 12 },
   total: { fontSize: 24, fontWeight: '800', color: '#0f766e' },
   line: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopColor: '#eef3f5', borderTopWidth: 1 },
   inactive: { opacity: 0.5 },
   product: { fontWeight: '700', color: '#172026' },
   meta: { color: '#60737c', marginTop: 3 },
-  qty: { width: 34, fontWeight: '700' },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, overflow: 'hidden' },
+  qtyButton: { width: 28, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef3f5' },
+  qty: { width: 28, textAlign: 'center', fontWeight: '700' },
   amount: { width: 90, textAlign: 'right', fontWeight: '700' },
   message: { minHeight: 110, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, padding: 12, textAlignVertical: 'top' },
   primary: { minHeight: 44, borderRadius: 6, backgroundColor: '#0f766e', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   primaryText: { color: '#fff', fontWeight: '800' },
   disabled: { opacity: 0.6 },
-  answer: { backgroundColor: '#eef7f5', borderRadius: 6, padding: 12, lineHeight: 20, color: '#172026' },
-  sources: { color: '#60737c' },
 });

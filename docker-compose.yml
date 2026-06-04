@@ -22,6 +22,7 @@ services:
       DATASET_DIR: /dataset
       AUTO_SEED: "true"
       LLM_ENABLED: "false"
+      LLM_MODEL: ${LLM_MODEL:-gpt-4.1-mini}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "8000:8000"
