@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const API = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
 const INITIAL_MESSAGES = [{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }];
+const API_ERROR_MESSAGE = `Backend’e bağlanılamıyor. Expo Go fiziksel telefonda çalışıyorsa EXPO_PUBLIC_API_URL bilgisayarınızın LAN adresi olmalı. Şu an: ${API}`;
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
@@ -25,6 +27,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState('login');
   const [loginCustomerId, setLoginCustomerId] = useState('CUST-ANK-002');
   const [loginError, setLoginError] = useState('');
+  const [apiError, setApiError] = useState('');
   const [createdCustomerNotice, setCreatedCustomerNotice] = useState('');
   const [createdQuoteNotice, setCreatedQuoteNotice] = useState('');
   const [quoteId, setQuoteId] = useState('');
@@ -44,8 +47,14 @@ export default function App() {
       setQuote(null);
       return;
     }
-    const res = await fetch(`${API}/quotes/${quoteId}`);
-    setQuote(await res.json());
+    try {
+      const res = await fetch(`${API}/quotes/${quoteId}`);
+      if (!res.ok) throw new Error('quote fetch failed');
+      setQuote(await res.json());
+      setApiError('');
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+    }
   }
 
   async function loadCustomerQuotes(nextCustomerId = customerId) {
@@ -53,10 +62,18 @@ export default function App() {
       setCustomerQuotes([]);
       return [];
     }
-    const res = await fetch(`${API}/customers/${nextCustomerId}/quotes`);
-    const data = await res.json();
-    setCustomerQuotes(data);
-    return data;
+    try {
+      const res = await fetch(`${API}/customers/${nextCustomerId}/quotes`);
+      if (!res.ok) throw new Error('customer quotes fetch failed');
+      const data = await res.json();
+      setCustomerQuotes(data);
+      setApiError('');
+      return data;
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+      setCustomerQuotes([]);
+      return [];
+    }
   }
 
   useEffect(() => {
@@ -84,39 +101,53 @@ export default function App() {
     const assistantId = `assistant-${Date.now()}`;
     setMessages((prev) => [...prev, { role: 'user', text: trimmed, sources: [] }, { id: assistantId, role: 'assistant', text: '', sources: [] }]);
     setMessage('');
-    const res = await fetch(`${API}/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quote_id: quoteId,
-        customer_id: customerId,
-        channel: 'mobile',
-        session_id: `MOB-${quoteId}`,
-        message_id: `MOB-${Date.now()}`,
-        message: trimmed,
-        require_confirmation: true,
-      }),
-    });
-    await readSse(res, (event, data) => {
-      if (event === 'text_delta') {
-        setMessages((prev) => prev.map((item) => item.id === assistantId ? { ...item, text: item.text + data.text } : item));
-      }
-      if (event === 'source') {
-        const source = { id: data.source_id, label: data.label || data.source_id };
-        setMessages((prev) => prev.map((item) => item.id === assistantId && !item.sources?.some((s) => s.id === source.id) ? { ...item, sources: [...(item.sources || []), source] } : item));
-      }
-    });
-    await loadQuote();
-    setBusy(false);
+    try {
+      const res = await fetch(`${API}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quote_id: quoteId,
+          customer_id: customerId,
+          channel: 'mobile',
+          session_id: `MOB-${quoteId}`,
+          message_id: `MOB-${Date.now()}`,
+          message: trimmed,
+          require_confirmation: true,
+        }),
+      });
+      if (!res.ok) throw new Error('chat fetch failed');
+      await readSse(res, (event, data) => {
+        if (event === 'text_delta') {
+          setMessages((prev) => prev.map((item) => item.id === assistantId ? { ...item, text: item.text + data.text } : item));
+        }
+        if (event === 'source') {
+          const source = { id: data.source_id, label: data.label || data.source_id };
+          setMessages((prev) => prev.map((item) => item.id === assistantId && !item.sources?.some((s) => s.id === source.id) ? { ...item, sources: [...(item.sources || []), source] } : item));
+        }
+      });
+      setApiError('');
+      await loadQuote();
+    } catch {
+      setMessages((prev) => prev.map((item) => item.id === assistantId ? { ...item, text: API_ERROR_MESSAGE } : item));
+      setApiError(API_ERROR_MESSAGE);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function setQuantity(item, quantity) {
-    await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control', customer_id: customerId }),
-    });
-    await loadQuote();
+    try {
+      const res = await fetch(`${API}/quotes/${quoteId}/items/${item.product_id}/quantity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: Math.max(quantity, 0), reason: 'mobile quantity control', customer_id: customerId }),
+      });
+      if (!res.ok) throw new Error('quantity update failed');
+      setApiError('');
+      await loadQuote();
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+    }
   }
 
   function selectQuote(nextQuoteId) {
@@ -128,12 +159,20 @@ export default function App() {
     const trimmed = nextCustomerId.trim();
     if (!trimmed) return;
     setLoginError('');
-    const res = await fetch(`${API}/customers/${trimmed}`);
-    if (!res.ok) {
-      setLoginError('Müşteri bulunamadı.');
+    let customer;
+    try {
+      const res = await fetch(`${API}/customers/${trimmed}`);
+      if (!res.ok) {
+        setLoginError('Müşteri bulunamadı.');
+        return;
+      }
+      customer = await res.json();
+      setApiError('');
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+      setLoginError('Backend’e bağlanılamıyor.');
       return;
     }
-    const customer = await res.json();
     setLoggedCustomer(customer);
     setCustomerId(customer.customer_id);
     setQuoteId('');
@@ -148,12 +187,20 @@ export default function App() {
 
   async function createCustomer() {
     if (!newCustomer.name.trim()) return;
-    const res = await fetch(`${API}/customers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newCustomer),
-    });
-    const created = await res.json();
+    let created;
+    try {
+      const res = await fetch(`${API}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCustomer),
+      });
+      if (!res.ok) throw new Error('customer create failed');
+      created = await res.json();
+      setApiError('');
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+      return;
+    }
     setLoggedCustomer(created);
     setCustomerId(created.customer_id);
     setQuoteId('');
@@ -171,12 +218,20 @@ export default function App() {
 
   async function createQuote() {
     if (!customerId) return;
-    const res = await fetch(`${API}/quotes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customer_id: customerId, created_by_channel: 'mobile' }),
-    });
-    const created = await res.json();
+    let created;
+    try {
+      const res = await fetch(`${API}/quotes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: customerId, created_by_channel: 'mobile' }),
+      });
+      if (!res.ok) throw new Error('quote create failed');
+      created = await res.json();
+      setApiError('');
+    } catch {
+      setApiError(API_ERROR_MESSAGE);
+      return;
+    }
     await loadCustomerQuotes(customerId);
     setQuoteId(created.quote_id);
     setQuote(created);
@@ -200,55 +255,60 @@ export default function App() {
 
   if (!loggedCustomer) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.authContainer}>
-          <View style={styles.header}>
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>TBR</Text>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safe}>
+          <StatusBar style="dark" />
+          <ScrollView contentContainerStyle={styles.authContainer}>
+            <View style={styles.header}>
+              <View style={styles.logo}>
+                <Text style={styles.logoText}>TBR</Text>
+              </View>
+              <View>
+                <Text style={styles.title}>The Blue Red</Text>
+                <Text style={styles.subtitle}>Mobil teklif asistanı</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.title}>The Blue Red</Text>
-              <Text style={styles.subtitle}>Mobil teklif asistanı</Text>
+            <View style={styles.panel}>
+              {authMode === 'login' ? <>
+                <Text style={styles.panelTitle}>Müşteri girişi</Text>
+                {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
+                {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
+                <Text style={styles.fieldLabel}>Müşteri ID</Text>
+                <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
+                {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
+                <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
+                  <Text style={styles.primaryActionText}>Giriş yap</Text>
+                </TouchableOpacity>
+                <Text style={styles.helperText}>Müşteri ID’niz yok mu?</Text>
+                <TouchableOpacity style={styles.linkAction} onPress={() => {
+                  setAuthMode('register');
+                  setLoginError('');
+                }}>
+                  <Text style={styles.linkActionText}>Yeni müşteri kaydı</Text>
+                </TouchableOpacity>
+              </> : <>
+                <Text style={styles.panelTitle}>Yeni müşteri kaydı</Text>
+                {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
+                <CustomerFormFields newCustomer={newCustomer} setNewCustomer={setNewCustomer} />
+                <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={createCustomer} disabled={!newCustomer.name.trim()}>
+                  <Text style={styles.primaryActionText}>Kaydı oluştur</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryAction} onPress={() => setAuthMode('login')}>
+                  <Text style={styles.secondaryActionText}>Girişe dön</Text>
+                </TouchableOpacity>
+              </>}
             </View>
-          </View>
-          <View style={styles.panel}>
-            {authMode === 'login' ? <>
-              <Text style={styles.panelTitle}>Müşteri girişi</Text>
-              {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
-              <Text style={styles.fieldLabel}>Müşteri ID</Text>
-              <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
-              {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
-              <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
-                <Text style={styles.primaryActionText}>Giriş yap</Text>
-              </TouchableOpacity>
-              <Text style={styles.helperText}>Müşteri ID’niz yok mu?</Text>
-              <TouchableOpacity style={styles.linkAction} onPress={() => {
-                setAuthMode('register');
-                setLoginError('');
-              }}>
-                <Text style={styles.linkActionText}>Yeni müşteri kaydı</Text>
-              </TouchableOpacity>
-            </> : <>
-              <Text style={styles.panelTitle}>Yeni müşteri kaydı</Text>
-              <CustomerFormFields newCustomer={newCustomer} setNewCustomer={setNewCustomer} />
-              <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={createCustomer} disabled={!newCustomer.name.trim()}>
-                <Text style={styles.primaryActionText}>Kaydı oluştur</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryAction} onPress={() => setAuthMode('login')}>
-                <Text style={styles.secondaryActionText}>Girişe dön</Text>
-              </TouchableOpacity>
-            </>}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+          </ScrollView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView style={styles.appFrame} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safe}>
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView style={styles.appFrame} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           {viewMode === 'quotes' && <TouchableOpacity style={styles.headerIconButton} onPress={() => setViewMode('chat')}>
             <Ionicons name="chevron-back" size={22} color="#172026" />
@@ -268,6 +328,7 @@ export default function App() {
           </TouchableOpacity>
         </View>
         {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
+        {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
 
         {viewMode === 'quotes' && <View style={styles.contentFrame}>
           <View style={styles.selectorRow}>
@@ -333,7 +394,7 @@ export default function App() {
             </TouchableOpacity>
           </View>
         </View>}
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
 
       <Modal visible={quotePickerOpen} transparent animationType="fade" onRequestClose={() => setQuotePickerOpen(false)}>
         <View style={styles.modalBackdrop}>
@@ -351,14 +412,15 @@ export default function App() {
         </View>
       </Modal>
 
-      <CustomerFormModal
-        visible={customerFormOpen}
-        newCustomer={newCustomer}
-        setNewCustomer={setNewCustomer}
-        onClose={() => setCustomerFormOpen(false)}
-        onCreate={createCustomer}
-      />
-    </SafeAreaView>
+        <CustomerFormModal
+          visible={customerFormOpen}
+          newCustomer={newCustomer}
+          setNewCustomer={setNewCustomer}
+          onClose={() => setCustomerFormOpen(false)}
+          onCreate={createCustomer}
+        />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

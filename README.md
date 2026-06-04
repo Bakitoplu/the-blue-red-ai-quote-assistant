@@ -107,10 +107,10 @@ Müşteri arayüzünde Loglar sekmesi yoktur. Raw tool event ve JSON debug bilgi
 ```bash
 cd mobile
 npm install
-npm run start
+EXPO_PUBLIC_API_URL=http://BILGISAYARIN_LAN_IP_ADRESI:8000 npm run start
 ```
 
-Expo uygulaması backend’e bağlanır. İlk ekranda müşteri ID ile giriş yapılır veya ayrı “Yeni müşteri kaydı” ekranından kayıt oluşturulur; kullanıcı customer ID yazmaz, backend ID üretir ve mobil bunu gösterir. Girişten sonra sadece oturumdaki müşterinin teklifleri seçilebilir. Seçili müşteri için yeni draft teklif oluşturulabilir; kullanıcı quote ID yazmaz, backend ID üretir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
+Expo Go fiziksel telefonda çalışırken `127.0.0.1` telefonun kendisini gösterir; bu yüzden `EXPO_PUBLIC_API_URL` bilgisayarın aynı Wi-Fi ağındaki LAN IP adresi olmalıdır. Expo uygulaması backend’e bağlanır. İlk ekranda müşteri ID ile giriş yapılır veya ayrı “Yeni müşteri kaydı” ekranından kayıt oluşturulur; kullanıcı customer ID yazmaz, backend ID üretir ve mobil bunu gösterir. Girişten sonra sadece oturumdaki müşterinin teklifleri seçilebilir. Seçili müşteri için yeni draft teklif oluşturulabilir; kullanıcı quote ID yazmaz, backend ID üretir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
 
 ## Retrieval
 
