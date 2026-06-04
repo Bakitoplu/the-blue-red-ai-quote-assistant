@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.14:8000';
+const API = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
+const INITIAL_MESSAGES = [{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }];
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
-}
-
-function customerLabel(customer) {
-  const backorder = customer.allow_backorder ? 'backorder uygun' : 'backorder yok';
-  return `${customer.customer_id} · ${customer.city || '-'} · ${customer.price_tier} · ${backorder}`;
 }
 
 async function readSse(response, onEvent) {
@@ -26,14 +22,17 @@ async function readSse(response, onEvent) {
 
 export default function App() {
   const [loggedCustomer, setLoggedCustomer] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
   const [loginCustomerId, setLoginCustomerId] = useState('CUST-ANK-002');
   const [loginError, setLoginError] = useState('');
+  const [createdCustomerNotice, setCreatedCustomerNotice] = useState('');
+  const [createdQuoteNotice, setCreatedQuoteNotice] = useState('');
   const [quoteId, setQuoteId] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [quote, setQuote] = useState(null);
   const [customerQuotes, setCustomerQuotes] = useState([]);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
+  const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [busy, setBusy] = useState(false);
   const [quotePickerOpen, setQuotePickerOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
@@ -140,6 +139,9 @@ export default function App() {
     setQuoteId('');
     setQuote(null);
     setViewMode('chat');
+    setMessages(INITIAL_MESSAGES);
+    setCreatedCustomerNotice('');
+    setCreatedQuoteNotice('');
     const quotes = await loadCustomerQuotes(customer.customer_id);
     if (quotes.length === 1) setQuoteId(quotes[0].quote_id);
   }
@@ -160,6 +162,11 @@ export default function App() {
     setNewCustomer({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
     setCustomerFormOpen(false);
     setViewMode('chat');
+    setAuthMode('login');
+    setCreatedCustomerNotice(`Müşteri kaydınız oluşturuldu. Müşteri ID: ${created.customer_id}`);
+    setLoginCustomerId(created.customer_id);
+    setCreatedQuoteNotice('');
+    setMessages(INITIAL_MESSAGES);
   }
 
   async function createQuote() {
@@ -174,13 +181,28 @@ export default function App() {
     setQuoteId(created.quote_id);
     setQuote(created);
     setViewMode('quotes');
+    setCreatedQuoteNotice(`Yeni teklif oluşturuldu: ${created.quote_id}`);
   }
+
+  function logout() {
+    setLoggedCustomer(null);
+    setCustomerId('');
+    setQuoteId('');
+    setQuote(null);
+    setCustomerQuotes([]);
+    setMessage('');
+    setMessages(INITIAL_MESSAGES);
+    setCreatedQuoteNotice('');
+    setViewMode('chat');
+  }
+
+  const activeItems = (quote?.items || []).filter((item) => item.status === 'active');
 
   if (!loggedCustomer) {
     return (
       <SafeAreaView style={styles.safe}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.authContainer}>
           <View style={styles.header}>
             <View style={styles.logo}>
               <Text style={styles.logoText}>TBR</Text>
@@ -191,24 +213,34 @@ export default function App() {
             </View>
           </View>
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Müşteri Girişi</Text>
-            <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
-            {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
-            <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
-              <Text style={styles.primaryActionText}>Giriş yap</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryAction} onPress={() => setCustomerFormOpen(true)}>
-              <Text style={styles.secondaryActionText}>Yeni müşteri ekle</Text>
-            </TouchableOpacity>
+            {authMode === 'login' ? <>
+              <Text style={styles.panelTitle}>Müşteri girişi</Text>
+              {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
+              <Text style={styles.fieldLabel}>Müşteri ID</Text>
+              <TextInput style={styles.formInput} placeholder="CUST-ANK-002" value={loginCustomerId} onChangeText={setLoginCustomerId} autoCapitalize="characters" />
+              {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
+              <TouchableOpacity style={styles.primaryAction} onPress={() => loginCustomer()}>
+                <Text style={styles.primaryActionText}>Giriş yap</Text>
+              </TouchableOpacity>
+              <Text style={styles.helperText}>Müşteri ID’niz yok mu?</Text>
+              <TouchableOpacity style={styles.linkAction} onPress={() => {
+                setAuthMode('register');
+                setLoginError('');
+              }}>
+                <Text style={styles.linkActionText}>Yeni müşteri kaydı</Text>
+              </TouchableOpacity>
+            </> : <>
+              <Text style={styles.panelTitle}>Yeni müşteri kaydı</Text>
+              <CustomerFormFields newCustomer={newCustomer} setNewCustomer={setNewCustomer} />
+              <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={createCustomer} disabled={!newCustomer.name.trim()}>
+                <Text style={styles.primaryActionText}>Kaydı oluştur</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryAction} onPress={() => setAuthMode('login')}>
+                <Text style={styles.secondaryActionText}>Girişe dön</Text>
+              </TouchableOpacity>
+            </>}
           </View>
         </ScrollView>
-        <CustomerFormModal
-          visible={customerFormOpen}
-          newCustomer={newCustomer}
-          setNewCustomer={setNewCustomer}
-          onClose={() => setCustomerFormOpen(false)}
-          onCreate={createCustomer}
-        />
       </SafeAreaView>
     );
   }
@@ -216,68 +248,77 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView style={styles.appFrame} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
+          {viewMode === 'quotes' && <TouchableOpacity style={styles.headerIconButton} onPress={() => setViewMode('chat')}>
+            <Ionicons name="chevron-back" size={22} color="#172026" />
+          </TouchableOpacity>}
           <View style={styles.logo}>
             <Text style={styles.logoText}>TBR</Text>
           </View>
-          <View>
-            <Text style={styles.title}>The Blue Red</Text>
-            <Text style={styles.subtitle}>{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</Text>
+          <View style={styles.headerCopy}>
+            <Text style={styles.title} numberOfLines={1}>{viewMode === 'quotes' ? 'Teklifler' : 'The Blue Red'}</Text>
+            <Text style={styles.subtitle} numberOfLines={2}>{loggedCustomer.customer_id} · {loggedCustomer.city || '-'} · {loggedCustomer.price_tier}</Text>
           </View>
-          <TouchableOpacity style={styles.headerAction} onPress={() => setViewMode(viewMode === 'chat' ? 'quotes' : 'chat')}>
-            <Text style={styles.headerActionText}>{viewMode === 'chat' ? 'Teklifler' : 'Sohbet'}</Text>
+          {viewMode === 'chat' && <TouchableOpacity style={styles.headerIconButton} onPress={() => setViewMode('quotes')}>
+            <Ionicons name="document-text-outline" size={22} color="#172026" />
+          </TouchableOpacity>}
+          <TouchableOpacity style={styles.headerIconButton} onPress={logout}>
+            <Ionicons name="log-out-outline" size={21} color="#172026" />
           </TouchableOpacity>
         </View>
+        {createdCustomerNotice ? <Text style={styles.successText}>{createdCustomerNotice}</Text> : null}
 
-        {viewMode === 'quotes' && <View style={styles.selectorRow}>
-          <TouchableOpacity style={[styles.selectBox, !customerId && styles.disabled]} onPress={() => customerId && setQuotePickerOpen(true)} disabled={!customerId}>
-            <Text style={styles.selectLabel}>Teklif</Text>
-            <View style={styles.selectValueRow}>
-              <Text style={styles.selectValue}>{quoteId || 'Teklif seçin'}</Text>
-              <Ionicons name="chevron-down" size={18} color="#455a64" />
-            </View>
-            <Text style={styles.selectMeta}>{customerId ? 'Sadece seçili müşterinin teklifleri' : 'Önce müşteri seçin'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, !customerId && styles.disabled]} onPress={createQuote} disabled={!customerId}>
-            <Ionicons name="add" size={22} color="#fff" />
-          </TouchableOpacity>
+        {viewMode === 'quotes' && <View style={styles.contentFrame}>
+          <View style={styles.selectorRow}>
+            <TouchableOpacity style={[styles.selectBox, !customerId && styles.disabled]} onPress={() => customerId && setQuotePickerOpen(true)} disabled={!customerId}>
+              <Text style={styles.selectLabel}>Teklif</Text>
+              <View style={styles.selectValueRow}>
+                <Text style={styles.selectValue} numberOfLines={1}>{quoteId || 'Teklif seçin'}</Text>
+                <Ionicons name="chevron-down" size={18} color="#455a64" />
+              </View>
+              <Text style={styles.selectMeta}>{customerId ? 'Sadece bu müşterinin teklifleri' : 'Önce müşteri seçin'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.iconButton, !customerId && styles.disabled]} onPress={createQuote} disabled={!customerId}>
+              <Ionicons name="add" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.panel}>
+            <Text style={styles.panelTitle}>Teklif</Text>
+            {createdQuoteNotice ? <Text style={styles.successText}>{createdQuoteNotice}</Text> : null}
+            <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
+            {activeItems.length === 0 && <Text style={styles.empty}>Bu teklifte aktif ürün yok.</Text>}
+            {activeItems.map((item) => (
+              <View key={item.quote_item_id} style={styles.line}>
+                <View style={styles.lineProduct}>
+                  <Text style={styles.product}>{item.name_tr}</Text>
+                  <Text style={styles.meta}>{item.product_id}</Text>
+                  <Text style={styles.amount}>{money(item.line_total_try)}</Text>
+                </View>
+                <View style={styles.qtyControl}>
+                  <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity - 1)}>
+                    <Text>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.qty}>{item.quantity}</Text>
+                  <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity + 1)}>
+                    <Text>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>}
 
-        {viewMode === 'quotes' && <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Teklif</Text>
-          <Text style={styles.total}>{money(quote?.grand_total_try)}</Text>
-          {(quote?.items || []).map((item) => (
-            <View key={item.quote_item_id} style={[styles.line, item.status !== 'active' && styles.inactive]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.product}>{item.name_tr}</Text>
-                <Text style={styles.meta}>{item.product_id} · {item.status}</Text>
-              </View>
-              <View style={styles.qtyControl}>
-                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity - 1)}>
-                  <Text>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.qty}>{item.quantity}</Text>
-                <TouchableOpacity style={styles.qtyButton} onPress={() => setQuantity(item, item.quantity + 1)} disabled={item.status !== 'active'}>
-                  <Text>+</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.amount}>{money(item.line_total_try)}</Text>
-            </View>
-          ))}
-        </View>}
-
-        {viewMode === 'chat' && <View style={styles.panel}>
+        {viewMode === 'chat' && <View style={[styles.panel, styles.chatPanel]}>
           <Text style={styles.panelTitle}>Sohbet</Text>
-          <View style={styles.messages}>
-            {messages.length === 0 && <Text style={styles.empty}>Ürün, stok, garanti, teslimat veya teklifiniz hakkında yazabilirsiniz.</Text>}
+          <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent} keyboardShouldPersistTaps="handled">
             {messages.map((item, idx) => (
               <View key={item.id || idx} style={[styles.bubble, item.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
                 <Text style={item.role === 'user' ? styles.userText : styles.assistantText}>{item.text || '...'}</Text>
                 {item.sources?.length > 0 && <SourceList sources={item.sources} />}
               </View>
             ))}
-          </View>
+          </ScrollView>
           <View style={styles.composer}>
             <TextInput
               style={styles.message}
@@ -292,7 +333,7 @@ export default function App() {
             </TouchableOpacity>
           </View>
         </View>}
-      </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={quotePickerOpen} transparent animationType="fade" onRequestClose={() => setQuotePickerOpen(false)}>
         <View style={styles.modalBackdrop}>
@@ -340,22 +381,10 @@ function CustomerFormModal({ visible, newCustomer, setNewCustomer, onClose, onCr
       <View style={styles.modalBackdrop}>
         <TouchableOpacity style={styles.modalDismiss} activeOpacity={1} onPress={onClose} />
         <View style={styles.modalSheet}>
-          <Text style={styles.modalTitle}>Yeni Müşteri</Text>
-          <TextInput style={styles.formInput} placeholder="Müşteri adı" value={newCustomer.name} onChangeText={(text) => setNewCustomer({ ...newCustomer, name: text })} />
-          <TextInput style={styles.formInput} placeholder="Şehir" value={newCustomer.city} onChangeText={(text) => setNewCustomer({ ...newCustomer, city: text })} />
-          <View style={styles.segmented}>
-            {['standard', 'partner'].map((tier) => (
-              <TouchableOpacity key={tier} style={[styles.segmentButton, newCustomer.price_tier === tier && styles.segmentButtonActive]} onPress={() => setNewCustomer({ ...newCustomer, price_tier: tier })}>
-                <Text style={newCustomer.price_tier === tier ? styles.segmentTextActive : styles.segmentText}>{tier}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.checkRow} onPress={() => setNewCustomer({ ...newCustomer, allow_backorder: !newCustomer.allow_backorder })}>
-            <Ionicons name={newCustomer.allow_backorder ? 'checkbox' : 'square-outline'} size={20} color="#0f766e" />
-            <Text>Backorder uygun</Text>
-          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Yeni müşteri kaydı</Text>
+          <CustomerFormFields newCustomer={newCustomer} setNewCustomer={setNewCustomer} />
           <TouchableOpacity style={[styles.primaryAction, !newCustomer.name.trim() && styles.disabled]} onPress={onCreate} disabled={!newCustomer.name.trim()}>
-            <Text style={styles.primaryActionText}>Müşteri Ekle</Text>
+            <Text style={styles.primaryActionText}>Kaydı oluştur</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -363,16 +392,41 @@ function CustomerFormModal({ visible, newCustomer, setNewCustomer, onClose, onCr
   );
 }
 
+function CustomerFormFields({ newCustomer, setNewCustomer }) {
+  return (
+    <>
+      <Text style={styles.fieldLabel}>Firma / müşteri adı</Text>
+      <TextInput style={styles.formInput} value={newCustomer.name} onChangeText={(text) => setNewCustomer({ ...newCustomer, name: text })} />
+      <Text style={styles.fieldLabel}>Şehir</Text>
+      <TextInput style={styles.formInput} value={newCustomer.city} onChangeText={(text) => setNewCustomer({ ...newCustomer, city: text })} />
+      <Text style={styles.fieldLabel}>Müşteri tipi</Text>
+      <View style={styles.segmented}>
+        {['standard', 'partner'].map((tier) => (
+          <TouchableOpacity key={tier} style={[styles.segmentButton, newCustomer.price_tier === tier && styles.segmentButtonActive]} onPress={() => setNewCustomer({ ...newCustomer, price_tier: tier })}>
+            <Text style={newCustomer.price_tier === tier ? styles.segmentTextActive : styles.segmentText}>{tier}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <TouchableOpacity style={styles.checkRow} onPress={() => setNewCustomer({ ...newCustomer, allow_backorder: !newCustomer.allow_backorder })}>
+        <Ionicons name={newCustomer.allow_backorder ? 'checkbox' : 'square-outline'} size={20} color="#0f766e" />
+        <Text>Stok bekleme izni</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f4f7f8' },
-  container: { paddingHorizontal: 18, paddingBottom: 18, paddingTop: Platform.OS === 'android' ? (NativeStatusBar.currentHeight || 0) + 18 : 34, gap: 14 },
+  appFrame: { flex: 1, paddingHorizontal: 14, paddingBottom: 12, paddingTop: Platform.OS === 'android' ? (NativeStatusBar.currentHeight || 0) + 12 : 12, gap: 12 },
+  authContainer: { paddingHorizontal: 18, paddingBottom: 18, paddingTop: Platform.OS === 'android' ? (NativeStatusBar.currentHeight || 0) + 18 : 34, gap: 14 },
+  contentFrame: { gap: 12 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   logo: { width: 48, height: 48, borderRadius: 6, backgroundColor: '#d64045', alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#fff', fontWeight: '800' },
-  title: { fontSize: 22, fontWeight: '800', color: '#172026' },
+  headerCopy: { flex: 1, minWidth: 0 },
+  title: { fontSize: 21, fontWeight: '800', color: '#172026' },
   subtitle: { color: '#60737c', marginTop: 2 },
-  headerAction: { marginLeft: 'auto', minHeight: 38, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#294047', alignItems: 'center', justifyContent: 'center' },
-  headerActionText: { color: '#fff', fontWeight: '800' },
+  headerIconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', borderColor: '#d9e3e7', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 10 },
   input: { flex: 1, minHeight: 44, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, paddingHorizontal: 12 },
   iconButton: { width: 48, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#294047' },
@@ -384,7 +438,9 @@ const styles = StyleSheet.create({
   selectMeta: { color: '#60737c', marginTop: 2, fontSize: 12 },
   panel: { backgroundColor: '#fff', borderColor: '#d9e3e7', borderWidth: 1, borderRadius: 8, padding: 14, gap: 10 },
   panelTitle: { fontSize: 16, fontWeight: '800', color: '#172026' },
-  messages: { gap: 10, minHeight: 220 },
+  chatPanel: { flex: 1, minHeight: 0 },
+  messages: { flex: 1, minHeight: 0 },
+  messagesContent: { gap: 10, paddingBottom: 8 },
   empty: { color: '#60737c' },
   bubble: { maxWidth: '86%', borderRadius: 8, padding: 12 },
   userBubble: { alignSelf: 'flex-end', backgroundColor: '#0f766e' },
@@ -396,14 +452,15 @@ const styles = StyleSheet.create({
   sourceTitle: { fontWeight: '800', color: '#455a64', fontSize: 12 },
   sourceLine: { color: '#455a64', fontSize: 12 },
   total: { fontSize: 24, fontWeight: '800', color: '#0f766e' },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopColor: '#eef3f5', borderTopWidth: 1 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopColor: '#eef3f5', borderTopWidth: 1 },
+  lineProduct: { flex: 1, minWidth: 0 },
   inactive: { opacity: 0.5 },
   product: { fontWeight: '700', color: '#172026' },
   meta: { color: '#60737c', marginTop: 3 },
   qtyControl: { flexDirection: 'row', alignItems: 'center', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 6, overflow: 'hidden' },
   qtyButton: { width: 28, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef3f5' },
   qty: { width: 28, textAlign: 'center', fontWeight: '700' },
-  amount: { width: 90, textAlign: 'right', fontWeight: '700' },
+  amount: { marginTop: 4, fontWeight: '700', color: '#172026' },
   composer: { minHeight: 52, borderColor: '#c7d5da', borderWidth: 1, borderRadius: 8, padding: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: '#fff' },
   message: { flex: 1, minHeight: 34, maxHeight: 120, paddingHorizontal: 6, paddingVertical: 6, textAlignVertical: 'top' },
   sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0f766e', alignItems: 'center', justifyContent: 'center' },
@@ -416,6 +473,7 @@ const styles = StyleSheet.create({
   quoteOptionId: { fontWeight: '800', color: '#172026' },
   quoteOptionCustomer: { color: '#60737c', marginTop: 2 },
   formInput: { minHeight: 44, backgroundColor: '#fff', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12 },
+  fieldLabel: { color: '#455a64', fontSize: 12, fontWeight: '700', marginBottom: -2 },
   segmented: { flexDirection: 'row', borderColor: '#c7d5da', borderWidth: 1, borderRadius: 8, overflow: 'hidden' },
   segmentButton: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   segmentButtonActive: { backgroundColor: '#0f766e' },
@@ -427,5 +485,9 @@ const styles = StyleSheet.create({
   secondaryAction: { minHeight: 44, borderRadius: 8, backgroundColor: '#eef3f5', alignItems: 'center', justifyContent: 'center' },
   secondaryActionText: { color: '#172026', fontWeight: '800' },
   errorText: { color: '#b42318' },
+  successText: { color: '#0f766e', lineHeight: 20 },
+  helperText: { color: '#60737c', textAlign: 'center', marginTop: 4 },
+  linkAction: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+  linkActionText: { color: '#0f766e', fontWeight: '800' },
   disabled: { opacity: 0.6 },
 });

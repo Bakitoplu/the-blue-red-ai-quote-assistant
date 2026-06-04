@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -124,7 +125,11 @@ def create_customer(payload: CustomerCreateRequest, db: Session = Depends(get_db
         notes="",
     )
     db.add(customer)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Müşteri ID çakıştı, tekrar deneyin.") from exc
     return _customer_dict(customer)
 
 
@@ -149,7 +154,11 @@ def create_quote(payload: QuoteCreateRequest, db: Session = Depends(get_db)) -> 
         notes=payload.notes,
     )
     db.add(quote)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Teklif ID çakıştı, tekrar deneyin.") from exc
     return get_quote(db, quote.quote_id).data
 
 

@@ -93,10 +93,10 @@ npm install
 npm run dev
 ```
 
-Web uygulaması gerçek backend API’ye bağlıdır. İlk ekranda müşteri ID ile giriş yapılır veya yeni müşteri oluşturulur. Girişten sonra teklif dropdown’u sadece oturumdaki müşteriye ait teklifleri gösterir; seçili müşteri için yeni draft teklif oluşturulabilir. Sol menü:
+Web uygulaması gerçek backend API’ye bağlıdır. İlk ekranda yalnızca müşteri girişi vardır; “Yeni müşteri kaydı” ayrı kayıt ekranını açar. Kayıtta kullanıcı ID yazmaz, backend `CUST-NEW-###` formatında çakışmayan müşteri ID üretir ve oluşturulan ID kullanıcıya gösterilir. Girişten sonra teklif dropdown’u sadece oturumdaki müşteriye ait teklifleri gösterir; seçili müşteri için backend tarafından `Q-NEW-###` formatında yeni draft teklif oluşturulabilir. Sol menü:
 
 - Sohbet: ChatGPT benzeri kullanıcı/asistan balonları, streaming cevap, sade kaynak listesi
-- Teklifler: kalıcı draft state, satır toplamları ve `[-] [quantity] [+]` kontrolleri
+- Teklifler: kalıcı draft state, yalnızca aktif teklif kalemleri, satır toplamları ve `[-] [quantity] [+]` kontrolleri
 - Ürün listeleme, ekleme ve düzenleme
 - Knowledge listeleme, ekleme ve düzenleme
 
@@ -110,7 +110,7 @@ npm install
 npm run start
 ```
 
-Expo uygulaması backend’e bağlanır. İlk ekranda müşteri ID ile giriş yapılır veya yeni müşteri oluşturulur; girişten sonra sadece oturumdaki müşterinin teklifleri seçilebilir. Seçili müşteri için yeni draft teklif oluşturulabilir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
+Expo uygulaması backend’e bağlanır. İlk ekranda müşteri ID ile giriş yapılır veya ayrı “Yeni müşteri kaydı” ekranından kayıt oluşturulur; kullanıcı customer ID yazmaz, backend ID üretir ve mobil bunu gösterir. Girişten sonra sadece oturumdaki müşterinin teklifleri seçilebilir. Seçili müşteri için yeni draft teklif oluşturulabilir; kullanıcı quote ID yazmaz, backend ID üretir. Chat mesajı seçili `customer_id` + `quote_id` ile gönderilir, stream cevabı chat balonunda birikir, sade kaynaklar gösterilir ve aynı quote state’i okunur. Mobil teklif ekranında web ile aynı quantity endpoint’i üzerinden `[-] [quantity] [+]` kontrolleri çalışır.
 
 ## Retrieval
 
@@ -158,12 +158,13 @@ Contract/golden mode:
 
 - Kullanıcı önce müşteri olarak giriş yapar.
 - Web ve mobil sadece giriş yapılan müşterinin tekliflerini listeler.
-- Yeni müşteri oluşturulabilir; oluşturulan müşteriyle otomatik giriş yapılır.
-- Giriş yapılan müşteri için yeni draft teklif oluşturulabilir.
+- Yeni müşteri kaydı oluşturulabilir; backend `CUST-NEW-###` formatında otomatik ID üretir, oluşturulan müşteriyle otomatik giriş yapılır ve ID kullanıcıya gösterilir.
+- Giriş yapılan müşteri için yeni draft teklif oluşturulabilir; backend `Q-NEW-###` formatında otomatik ID üretir ve yeni teklif otomatik seçilir.
 - Chat ve quantity mutation istekleri `customer_id` + `quote_id` ile gider.
 - Backend, quote ile customer eşleşmezse chat ve quantity mutation işlemlerini controlled error/403 ile engeller.
 - Müşteri değişince eski `quote_id` temizlenir.
 - Web ve mobil aynı customer/quote akışını ve aynı backend state’ini kullanır.
+- Müşteri teklif ekranlarında `inactive`, `removed` veya `replaced` kalemler aktif ürün gibi gösterilmez; audit/status bilgisi backend state ve loglarda korunur.
 
 ## Quote Mutation Model
 

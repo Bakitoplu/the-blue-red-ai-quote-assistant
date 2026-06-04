@@ -46,6 +46,10 @@ textarea {
   margin-bottom: 4px;
 }
 
+.authTitle {
+  font-size: 20px;
+}
+
 .loginPanel label,
 .loginForm label {
   color: #455a64;
@@ -65,6 +69,30 @@ textarea {
 .errorText {
   color: #b42318;
   font-size: 13px;
+}
+
+.successText {
+  color: #0f766e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.inlineNotice {
+  padding: 10px 14px 0;
+}
+
+.helperText {
+  color: #60737c;
+  font-size: 13px;
+  text-align: center;
+}
+
+.linkAction {
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  color: #0f766e;
+  font-weight: 800;
 }
 
 .sidebar {
@@ -172,6 +200,13 @@ button:disabled {
 .customerBadge span {
   color: #b8c9cf;
   font-size: 12px;
+  line-height: 1.35;
+}
+
+.customerBadge em {
+  color: #8ee3d8;
+  font-size: 12px;
+  font-style: normal;
   line-height: 1.35;
 }
 

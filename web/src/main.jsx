@@ -5,14 +5,10 @@ import './styles.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
+const INITIAL_MESSAGES = [{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }];
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
-}
-
-function customerLabel(customer) {
-  const backorder = customer.allow_backorder ? 'backorder uygun' : 'backorder yok';
-  return `${customer.name} · ${customer.customer_id} · ${customer.city || '-'} · ${customer.price_tier} · ${backorder}`;
 }
 
 async function readSse(response, onEvent) {
@@ -36,6 +32,7 @@ async function readSse(response, onEvent) {
 function App() {
   const [tab, setTab] = useState('chat');
   const [loggedCustomer, setLoggedCustomer] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
   const [loginCustomerId, setLoginCustomerId] = useState('CUST-ANK-002');
   const [loginError, setLoginError] = useState('');
   const [quoteId, setQuoteId] = useState('');
@@ -48,10 +45,12 @@ function App() {
   const [knowledgeForm, setKnowledgeForm] = useState(null);
   const [message, setMessage] = useState('');
   const [events, setEvents] = useState([]);
-  const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
+  const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [streamSources, setStreamSources] = useState([]);
   const [busy, setBusy] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
+  const [createdCustomerNotice, setCreatedCustomerNotice] = useState('');
+  const [createdQuoteNotice, setCreatedQuoteNotice] = useState('');
 
   async function loadQuote() {
     if (!quoteId) {
@@ -167,6 +166,9 @@ function App() {
     setCustomerId(customer.customer_id);
     setQuoteId('');
     setQuote(null);
+    setCreatedCustomerNotice('');
+    setCreatedQuoteNotice('');
+    setMessages(INITIAL_MESSAGES);
     const quotes = await loadCustomerQuotes(customer.customer_id);
     if (quotes.length === 1) setQuoteId(quotes[0].quote_id);
   }
@@ -184,6 +186,11 @@ function App() {
     setQuoteId('');
     setQuote(null);
     setNewCustomer({ name: '', city: '', price_tier: 'standard', allow_backorder: false });
+    setCreatedCustomerNotice(`Müşteri kaydınız oluşturuldu. Müşteri ID: ${created.customer_id}`);
+    setLoginCustomerId(created.customer_id);
+    setCreatedQuoteNotice('');
+    setMessages(INITIAL_MESSAGES);
+    setAuthMode('login');
   }
 
   async function createQuote() {
@@ -197,6 +204,7 @@ function App() {
     await loadCustomerQuotes(customerId);
     setQuoteId(created.quote_id);
     setQuote(created);
+    setCreatedQuoteNotice(`Yeni teklif oluşturuldu: ${created.quote_id}`);
   }
 
   if (!loggedCustomer) {
@@ -210,27 +218,49 @@ function App() {
               <p>Teklif Asistanı</p>
             </div>
           </div>
-          <label>
-            Müşteri ID
-            <input value={loginCustomerId} onChange={(e) => setLoginCustomerId(e.target.value)} placeholder="CUST-ANK-002" />
-          </label>
-          {loginError && <p className="errorText">{loginError}</p>}
-          <button className="primary" onClick={() => loginCustomer()}>Giriş yap</button>
-          <div className="loginDivider" />
-          <div className="loginForm">
-            <strong>Yeni müşteri ekle</strong>
-            <input placeholder="Müşteri adı" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
-            <input placeholder="Şehir" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} />
-            <select value={newCustomer.price_tier} onChange={(e) => setNewCustomer({ ...newCustomer, price_tier: e.target.value })}>
-              <option value="standard">standard</option>
-              <option value="partner">partner</option>
-            </select>
-            <label className="checkboxLabel light">
-              <input type="checkbox" checked={newCustomer.allow_backorder} onChange={(e) => setNewCustomer({ ...newCustomer, allow_backorder: e.target.checked })} />
-              Backorder uygun
-            </label>
-            <button className="smallAction" onClick={createCustomer} disabled={!newCustomer.name.trim()}>Yeni müşteri oluştur ve giriş yap</button>
-          </div>
+          {authMode === 'login' ? (
+            <>
+              <h2 className="authTitle">Müşteri girişi</h2>
+              {createdCustomerNotice && <p className="successText">{createdCustomerNotice}</p>}
+              <label>
+                Müşteri ID
+                <input value={loginCustomerId} onChange={(e) => setLoginCustomerId(e.target.value)} placeholder="CUST-ANK-002" />
+              </label>
+              {loginError && <p className="errorText">{loginError}</p>}
+              <button className="primary" onClick={() => loginCustomer()}>Giriş yap</button>
+              <div className="loginDivider" />
+              <p className="helperText">Müşteri ID’niz yok mu?</p>
+              <button className="linkAction" onClick={() => {
+                setAuthMode('register');
+                setLoginError('');
+              }}>Yeni müşteri kaydı</button>
+            </>
+          ) : (
+            <div className="loginForm">
+              <h2 className="authTitle">Yeni müşteri kaydı</h2>
+              <label>
+                Firma / müşteri adı
+                <input value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
+              </label>
+              <label>
+                Şehir
+                <input value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} />
+              </label>
+              <label>
+                Müşteri tipi
+                <select value={newCustomer.price_tier} onChange={(e) => setNewCustomer({ ...newCustomer, price_tier: e.target.value })}>
+                  <option value="standard">standard</option>
+                  <option value="partner">partner</option>
+                </select>
+              </label>
+              <label className="checkboxLabel light">
+                <input type="checkbox" checked={newCustomer.allow_backorder} onChange={(e) => setNewCustomer({ ...newCustomer, allow_backorder: e.target.checked })} />
+                Stok bekleme izni
+              </label>
+              <button className="primary" onClick={createCustomer} disabled={!newCustomer.name.trim()}>Kaydı oluştur</button>
+              <button className="smallAction" onClick={() => setAuthMode('login')}>Girişe dön</button>
+            </div>
+          )}
         </section>
       </main>
     );
@@ -291,6 +321,21 @@ function App() {
     await loadKnowledge();
   }
 
+  function logout() {
+    setLoggedCustomer(null);
+    setCustomerId('');
+    setQuoteId('');
+    setQuote(null);
+    setCustomerQuotes([]);
+    setMessages(INITIAL_MESSAGES);
+    setEvents([]);
+    setStreamSources([]);
+    setMessage('');
+    setCreatedQuoteNotice('');
+  }
+
+  const activeItems = (quote?.items || []).filter((item) => item.status === 'active');
+
   return (
     <main className="shell">
       <aside className="sidebar">
@@ -303,14 +348,9 @@ function App() {
         </div>
         <div className="customerBadge">
           <strong>{loggedCustomer.name}</strong>
-          <span>{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</span>
-          <button className="smallAction" onClick={() => {
-            setLoggedCustomer(null);
-            setCustomerId('');
-            setQuoteId('');
-            setQuote(null);
-            setCustomerQuotes([]);
-          }}>Müşteri değiştir</button>
+          <span>{loggedCustomer.customer_id} · {loggedCustomer.city || '-'} · {loggedCustomer.price_tier}</span>
+          {createdCustomerNotice && <em>{createdCustomerNotice}</em>}
+          <button className="smallAction" onClick={logout}>Çıkış yap</button>
         </div>
         <label>
           Teklif
@@ -364,6 +404,7 @@ function App() {
               <button className="smallAction" onClick={createQuote}>Yeni teklif oluştur</button>
             </div>
             {!quoteId && <p className="empty">Bu müşteri için teklif seçin veya yeni teklif oluşturun.</p>}
+            {createdQuoteNotice && <p className="successText inlineNotice">{createdQuoteNotice}</p>}
             <table>
               <thead>
                 <tr>
@@ -376,8 +417,8 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {(quote?.items || []).map((item) => (
-                  <tr key={item.quote_item_id} className={item.status !== 'active' ? 'muted' : ''}>
+                {activeItems.map((item) => (
+                  <tr key={item.quote_item_id}>
                     <td>
                       <strong>{item.name_tr}</strong>
                       <span>{item.product_id}</span>
@@ -405,7 +446,7 @@ function App() {
             <div className="panelTitle">
               <Send size={18} />
               Sohbet
-              <span className="customerContext">{loggedCustomer.customer_id} · {loggedCustomer.price_tier} · {loggedCustomer.allow_backorder ? 'backorder uygun' : 'backorder yok'}</span>
+              <span className="customerContext">{loggedCustomer.customer_id} · {loggedCustomer.city || '-'} · {loggedCustomer.price_tier}</span>
             </div>
             {!quoteId && <p className="empty">Bu müşteri için teklif yok. Yeni teklif oluşturun.</p>}
             <div className="messages">

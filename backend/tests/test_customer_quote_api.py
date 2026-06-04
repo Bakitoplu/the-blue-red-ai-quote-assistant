@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+import re
 
 from app.database import get_db
 from app.main import app
@@ -26,9 +27,20 @@ def test_customers_list_and_create_customer(db):
         assert created.status_code == 200
         customer = created.json()
         assert customer["customer_id"].startswith("CUST-NEW-")
+        assert re.fullmatch(r"CUST-NEW-\d{3}", customer["customer_id"])
+        assert customer["customer_id"] not in {"CUST-ANK-002", "CUST-IST-001"}
         assert customer["name"] == "Yeni Müşteri A.Ş."
         assert customer["price_tier"] == "partner"
         assert customer["allow_backorder"] is True
+
+        second_created = client.post(
+            "/customers",
+            json={"name": "Yeni Müşteri B", "city": "İzmir", "price_tier": "standard", "allow_backorder": False},
+        )
+        assert second_created.status_code == 200
+        second_customer = second_created.json()
+        assert re.fullmatch(r"CUST-NEW-\d{3}", second_customer["customer_id"])
+        assert second_customer["customer_id"] != customer["customer_id"]
 
         refreshed = client.get("/customers").json()
         assert any(item["customer_id"] == customer["customer_id"] for item in refreshed)
@@ -61,7 +73,19 @@ def test_customer_quotes_are_scoped_and_create_quote(db):
         assert created.status_code == 200
         quote = created.json()
         assert quote["quote_id"].startswith("Q-NEW-")
+        assert re.fullmatch(r"Q-NEW-\d{3}", quote["quote_id"])
+        assert quote["quote_id"] not in {"Q-1001", "Q-1002", "Q-1003", "Q-1004", "Q-1005"}
         assert quote["customer_id"] == "CUST-ANK-002"
+        assert quote["status"] == "draft"
+        assert quote["currency"] == "TRY"
+        assert quote["items"] == []
+
+        second_created = client.post("/quotes", json={"customer_id": "CUST-ANK-002", "created_by_channel": "mobile"})
+        assert second_created.status_code == 200
+        second_quote = second_created.json()
+        assert re.fullmatch(r"Q-NEW-\d{3}", second_quote["quote_id"])
+        assert second_quote["quote_id"] != quote["quote_id"]
+        assert second_quote["customer_id"] == "CUST-ANK-002"
 
         refreshed = client.get("/customers/CUST-ANK-002/quotes").json()
         assert any(item["quote_id"] == quote["quote_id"] for item in refreshed)
