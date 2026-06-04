@@ -80,7 +80,7 @@ def _allow_wait(text: str) -> bool:
 
 def _is_product_question(text: str) -> bool:
     n = _norm(text)
-    if _has_add_intent(text) or any(k in n for k in ["teklife koy", "teklifime koy", "degistir", "cikar", "kaldir", "sil"]):
+    if _has_add_intent(text) or _has_replace_intent(text) or _has_remove_intent(text) or _has_quantity_update_intent(text):
         return False
     question_terms = ["fiyati", "fiyat", "stokta", "var mi", "destekli", "garantisi", "garanti", "kac ay", "kac gunde", "teslim", "nedir", "ne kadar", "alternatifi"]
     return _has_product_signal(text) and any(q in n for q in question_terms)
@@ -115,6 +115,54 @@ def _has_add_intent(text: str) -> bool:
         r"\bteklifime\s+yaz\b",
     ]
     return any(re.search(pattern, n) for pattern in patterns)
+
+# ---- New intent helpers ----
+def _has_replace_intent(text: str) -> bool:
+    n = _norm(text)
+    phrases = [
+        "daha ucuz alternatif",
+        "alternatifle degistir",
+        "alternatif ile degistir",
+        "muadili var mi",
+        "bu pahali",
+        "pahali geldi",
+        "daha ucuzuyla degistir",
+        "daha ucuzu",
+        "ucuz alternatif",
+        "stokta olan alternatif",
+        "baska model",
+        "bunun yerine",
+        "yerine bunu koy",
+        "yerine daha ucuz",
+    ]
+    return any(phrase in n for phrase in phrases) or ("degistir" in n and any(k in n for k in ["ucuz", "alternatif", "muadil", "pahali", "yerine"]))
+
+
+def _has_remove_intent(text: str) -> bool:
+    n = _norm(text)
+    phrases = [
+        "kaldir",
+        "sil",
+        "cikar",
+        "tekliften cikar",
+        "tekliften kaldir",
+        "bunu sil",
+        "urunu kaldir",
+        "listeden cikar",
+        "iptal et",
+        "bu urunu istemiyorum",
+    ]
+    return any(re.search(rf"\b{re.escape(phrase)}\b", n) for phrase in phrases)
+
+
+def _has_quantity_update_intent(text: str) -> bool:
+    n = _norm(text)
+    return bool(
+        re.search(r"\b\d+\s*(?:adet|tane)\s*(?:yap|olsun)", n)
+        or re.search(r"\bmiktar[ıi]?\s*\d+\s*yap", n)
+        or re.search(r"\baded[iı]?\s*\d+\s*olsun", n)
+        or any(phrase in n for phrase in ["bir tane daha", "1 tane daha", "+1", "azalt", "bir eksilt", "dusur", "cikar", "adede cikar"])
+    )
 
 
 def _has_product_signal(text: str) -> bool:
@@ -214,6 +262,8 @@ def _has_business_signal(text: str) -> bool:
     return any(signal in n for signal in signals) or _price_limit(text) is not None
 
 
+
+
 def _select_product_for_question(text: str, products: list[dict]) -> dict | None:
     n = _norm(text)
     preferred = None
@@ -232,6 +282,58 @@ def _select_product_for_question(text: str, products: list[dict]) -> dict | None
             if product["product_id"] == preferred:
                 return product
     return products[0] if products else None
+
+# Helper to get Turkish aliases for a product
+def _product_aliases_tr(product: Product) -> list[str]:
+    aliases = getattr(product, "aliases", None)
+    if isinstance(aliases, dict):
+        values = aliases.get("tr", [])
+        return values if isinstance(values, list) else []
+    values = getattr(product, "aliases_tr", [])
+    return values if isinstance(values, list) else []
+
+# ---- New helpers for active items and alternatives ----
+def _active_quote_items(db: Session, quote_id: str) -> list[dict]:
+    quote_state = get_quote(db, quote_id).data
+    return [item for item in quote_state.get("items", []) if item.get("status") == "active"]
+
+
+def _pick_active_item_for_text(db: Session, quote_id: str, text: str) -> dict | None:
+    items = _active_quote_items(db, quote_id)
+    if not items:
+        return None
+    n = _norm(text)
+    for item in items:
+        product = db.get(Product, item["product_id"])
+        candidates = [item.get("product_id", ""), item.get("sku", ""), item.get("name_tr", "")]
+        if product:
+            candidates.extend([product.name_tr, product.sku, product.brand or ""])
+            candidates.extend(_product_aliases_tr(product))
+        if any(candidate and _norm(candidate) in n for candidate in candidates):
+            return item
+    if len(items) == 1:
+        return items[0]
+    return None
+
+
+def _format_active_item_list(items: list[dict]) -> str:
+    return "; ".join(item["name_tr"] for item in items[:5])
+
+
+def _cheaper_alternative(db: Session, product_id: str, max_price_try: float | None = None) -> Product | None:
+    source = db.get(Product, product_id)
+    if not source:
+        return None
+    ceiling = min(float(source.price_try) - 0.01, float(max_price_try) if max_price_try is not None else float(source.price_try) - 0.01)
+    candidates = list(db.scalars(select(Product).where(Product.category == source.category)))
+    candidates = [
+        product
+        for product in candidates
+        if product.product_id != product_id and product.stock_qty > 0 and float(product.price_try) <= ceiling
+    ]
+    substitute_ids = source.substitute_product_ids or []
+    candidates.sort(key=lambda product: (0 if product.product_id in substitute_ids else 1, float(product.price_try)))
+    return candidates[0] if candidates else None
 
 
 def _source_label(db: Session, source_id: str) -> str:
@@ -560,6 +662,51 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
                 db.commit()
                 runner.run("get_quote", {"quote_id": req.quote_id})
                 actions.append("Onayladığınız ürün teklifinize eklendi.")
+            elif pending.action_type == "replace":
+                runner.run(
+                    "replace_with_alternative",
+                    {
+                        "quote_id": pending.quote_id,
+                        "from_product_id": pending.from_product_id,
+                        "to_product_id": pending.to_product_id,
+                        "quantity": pending.quantity,
+                        "reason": "Kullanıcı onaylı daha uygun alternatif değişimi",
+                        "idempotency_key": _replace_key(message_id, pending.from_product_id or "", pending.to_product_id or ""),
+                        "max_price_try": float(pending.max_price_try) if pending.max_price_try is not None else None,
+                    },
+                )
+                pending.status = "applied"
+                db.commit()
+                runner.run("get_quote", {"quote_id": req.quote_id})
+                actions.append("Onayladığınız alternatif teklifinize uygulandı.")
+            elif pending.action_type == "remove":
+                runner.run(
+                    "update_quote_item",
+                    {
+                        "quote_id": pending.quote_id,
+                        "product_id": pending.product_id,
+                        "quantity": 0,
+                        "reason": "Kullanıcı onaylı kaldırma",
+                    },
+                )
+                pending.status = "applied"
+                db.commit()
+                runner.run("get_quote", {"quote_id": req.quote_id})
+                actions.append("Onayladığınız ürün teklifinizden kaldırıldı.")
+            elif pending.action_type == "update_quantity":
+                runner.run(
+                    "update_quote_item",
+                    {
+                        "quote_id": pending.quote_id,
+                        "product_id": pending.product_id,
+                        "quantity": pending.quantity,
+                        "reason": "Kullanıcı onaylı miktar güncellemesi",
+                    },
+                )
+                pending.status = "applied"
+                db.commit()
+                runner.run("get_quote", {"quote_id": req.quote_id})
+                actions.append("Onayladığınız miktar güncellemesi teklifinize uygulandı.")
             else:
                 actions.append("Bu bekleyen işlem tipi için uygulama desteği yok; teklif değişmedi.")
         elif req.require_confirmation and _is_bare_confirmation(req.message) and not pending:
@@ -568,6 +715,68 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             actions.append("Merhaba. Ürün, stok, fiyat, garanti, teslimat veya açık teklifiniz hakkında kaynaklı cevap verebilirim.")
         elif req.require_confirmation and _is_unclear_short(req.message):
             actions.append(_clarification_text(req.message))
+        elif req.require_confirmation and _has_replace_intent(req.message):
+            active_items = _active_quote_items(db, req.quote_id)
+            if not active_items:
+                actions.append("Teklifinizde değiştirebileceğim aktif bir ürün bulunmuyor. İsterseniz ihtiyacınıza uygun ürün önerebilirim.")
+            elif len(active_items) > 1 and not _pick_active_item_for_text(db, req.quote_id, req.message):
+                actions.append(f"Hangi ürünü daha ucuz bir alternatifle değiştirmek istediğinizi belirtir misiniz? Aktif ürünler: {_format_active_item_list(active_items)}")
+            else:
+                item = _pick_active_item_for_text(db, req.quote_id, req.message)
+                if not item:
+                    actions.append("Hangi ürünü daha ucuz bir alternatifle değiştirmek istediğinizi belirtir misiniz?")
+                else:
+                    limit = _price_limit(req.message)
+                    source_product = db.get(Product, item["product_id"])
+                    alternative = _cheaper_alternative(db, item["product_id"], limit)
+                    runner.run("get_quote", {"quote_id": req.quote_id})
+                    if source_product:
+                        runner.sources.append(source_product.product_id)
+                    if alternative:
+                        runner.sources.append(alternative.product_id)
+                        _save_pending(
+                            db,
+                            session_id,
+                            quote,
+                            "replace",
+                            runner.sources,
+                            from_product_id=item["product_id"],
+                            to_product_id=alternative.product_id,
+                            quantity=item.get("quantity") or 1,
+                            max_price_try=limit,
+                        )
+                        actions.append(
+                            f"Teklifinizdeki {item['name_tr']} için daha uygun fiyatlı ve stokta bir alternatif buldum: "
+                            f"{alternative.name_tr}. Fiyatı {float(alternative.price_try):.0f} TL, stok {alternative.stock_qty} adet. "
+                            "Bu ürünle değiştirmemi ister misiniz?"
+                        )
+                    else:
+                        actions.append(f"{item['name_tr']} için daha ucuz ve stokta olan uygun bir alternatif bulamadım.")
+        elif req.require_confirmation and _has_remove_intent(req.message):
+            active_items = _active_quote_items(db, req.quote_id)
+            item = _pick_active_item_for_text(db, req.quote_id, req.message)
+            if not active_items:
+                actions.append("Teklifinizde kaldırabileceğim aktif bir ürün bulunmuyor.")
+            elif len(active_items) > 1 and not item:
+                actions.append(f"Hangi ürünü tekliften kaldırmak istediğinizi belirtir misiniz? Aktif ürünler: {_format_active_item_list(active_items)}")
+            elif item:
+                _save_pending(db, session_id, quote, "remove", [item["product_id"]], product_id=item["product_id"], quantity=0)
+                actions.append(f"{item['name_tr']} ürününü teklifinizden kaldırmamı ister misiniz?")
+            else:
+                actions.append("Hangi ürünü tekliften kaldırmak istediğinizi belirtir misiniz?")
+        elif req.require_confirmation and _has_quantity_update_intent(req.message):
+            active_items = _active_quote_items(db, req.quote_id)
+            item = _pick_active_item_for_text(db, req.quote_id, req.message)
+            qty = _quantity(req.message, default=0)
+            if not active_items:
+                actions.append("Teklifinizde miktarını güncelleyebileceğim aktif bir ürün bulunmuyor.")
+            elif len(active_items) > 1 and not item:
+                actions.append(f"Hangi ürünün miktarını güncellemek istediğinizi belirtir misiniz? Aktif ürünler: {_format_active_item_list(active_items)}")
+            elif item and qty > 0:
+                _save_pending(db, session_id, quote, "update_quantity", [item["product_id"]], product_id=item["product_id"], quantity=qty)
+                actions.append(f"{item['name_tr']} miktarını {qty} adet yapmamı ister misiniz?")
+            else:
+                actions.append("Yeni miktarı anlayamadım. Örneğin 'BlueScan Air miktarını 3 adet yap' yazabilirsiniz.")
         elif req.require_confirmation and _is_product_question(req.message):
             search = runner.run("search_products", {"query": _search_query(req.message), "locale": "tr", "filters": {"in_stock_only": False}, "limit": 5})
             product = _select_product_for_question(req.message, search.data)
@@ -615,7 +824,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
             runner.run("search_products", {"query": "RedScan Mini", "locale": "tr", "filters": {"in_stock_only": False}, "limit": 3})
             runner.run("get_knowledge_entries", {"query": req.message, "locale": "tr", "topic": "stock_rule", "limit": 1})
             actions.append("RedScan Mini stokta olmadığı için açık bekleme onayı olmadan teklife eklenmedi; stok kuralı kaynaklandı.")
-        elif "çok pahalı" in n or "cok pahali" in n:
+        elif not req.require_confirmation and ("çok pahalı" in n or "cok pahali" in n):
             runner.run("get_quote", {"quote_id": req.quote_id})
             limit = _price_limit(req.message)
             runner.run("search_products", {"query": "kablosuz okuyucu", "locale": "tr", "filters": {"max_price_try": limit, "in_stock_only": True}, "limit": 5})
@@ -719,7 +928,7 @@ def plan_and_execute(db: Session, req: ChatStreamRequest) -> Iterator[str]:
                 if req.require_confirmation and not _has_business_signal(req.message):
                     actions.append("Bu konuda katalog veya teklif kaynağına dayalı bir bilgi bulamadım. Ürün, stok, fiyat, garanti, teslimat veya teklif isteğinizi yazabilirsiniz.")
                 else:
-                    actions.append("Teklif durumu kaynaklı olarak gösterildi.")
+                    actions.append("Teklifinizi görüntüleyebiliyorum. Hangi ürün için bilgi, miktar güncellemesi, kaldırma veya alternatif istediğinizi yazarsanız yardımcı olurum.")
 
         for event in runner.events:
             yield event
