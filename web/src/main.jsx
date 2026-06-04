@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RefreshCw, Send, Database, ScrollText, Package, BookOpen, Save } from 'lucide-react';
+import { RefreshCw, Send, Database, ScrollText, Package, BookOpen, Save, ChevronDown } from 'lucide-react';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const WELCOME_MESSAGE = 'Merhaba, size ürünler, politikalar ve teklifiniz hakkında yardımcı olabilirim.';
 
 function money(value) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value || 0);
@@ -37,9 +38,9 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [productForm, setProductForm] = useState(null);
   const [knowledgeForm, setKnowledgeForm] = useState(null);
-  const [message, setMessage] = useState('9.000 TL altında, stokta olan kablosuz QR barkod okuyucu ekler misin?');
+  const [message, setMessage] = useState('');
   const [events, setEvents] = useState([]);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([{ id: 'welcome', role: 'assistant', text: WELCOME_MESSAGE, sources: [] }]);
   const [streamSources, setStreamSources] = useState([]);
   const [busy, setBusy] = useState(false);
 
@@ -71,12 +72,15 @@ function App() {
   }, [quoteId]);
 
   async function sendMessage() {
+    const trimmed = message.trim();
+    if (!trimmed || busy) return;
     setBusy(true);
     setEvents([]);
     setStreamSources([]);
-    const userMessage = { role: 'user', text: message, sources: [] };
+    const userMessage = { role: 'user', text: trimmed, sources: [] };
     const assistantId = `assistant-${Date.now()}`;
     setMessages((prev) => [...prev, userMessage, { id: assistantId, role: 'assistant', text: '', sources: [] }]);
+    setMessage('');
     const res = await fetch(`${API}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,7 +90,7 @@ function App() {
         channel: 'web',
         session_id: `WEB-${quoteId}`,
         message_id: `WEB-${Date.now()}`,
-        message,
+        message: trimmed,
         require_confirmation: true,
       }),
     });
@@ -198,8 +202,8 @@ function App() {
         </button>
         <nav className="tabs">
           {[
-            ['quote', Database, 'Teklif'],
             ['chat', Send, 'Sohbet'],
+            ['quote', Database, 'Teklif'],
             ['products', Package, 'Ürünler'],
             ['knowledge', BookOpen, 'Bilgi'],
             ['logs', ScrollText, 'Loglar'],
@@ -277,20 +281,31 @@ function App() {
               {messages.map((item, idx) => (
                 <div className={`bubble ${item.role}`} key={item.id || idx}>
                   <p>{item.text || '...'}</p>
-                  {item.sources?.length > 0 && (
-                    <div className="sourceList">
-                      <strong>Kaynaklar</strong>
-                      {item.sources.map((source) => <span key={source.id}>{source.id} · {source.label}</span>)}
-                    </div>
-                  )}
+                  {item.sources?.length > 0 && <SourceDisclosure sources={item.sources} />}
                 </div>
               ))}
             </div>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} />
-            <button className="primary" onClick={sendMessage} disabled={busy}>
-              <Send size={18} />
-              Gönder
-            </button>
+            <div className="composer">
+              <textarea
+                value={message}
+                rows={1}
+                placeholder="Ürün, politika veya teklif hakkında yazın…"
+                onChange={(e) => setMessage(e.target.value)}
+                onInput={(e) => {
+                  e.currentTarget.style.height = 'auto';
+                  e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 132)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+              />
+              <button className="sendButton" onClick={sendMessage} disabled={busy || !message.trim()} title="Gönder">
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </section>}
 
@@ -385,6 +400,23 @@ function App() {
         </section>}
       </section>
     </main>
+  );
+}
+
+function SourceDisclosure({ sources }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`sourceList ${open ? 'open' : ''}`}>
+      <button type="button" className="sourceToggle" onClick={() => setOpen((value) => !value)}>
+        <ChevronDown size={14} />
+        Kaynaklar
+      </button>
+      {open && (
+        <div className="sourceItems">
+          {sources.map((source) => <span key={source.id}>{source.id} · {source.label}</span>)}
+        </div>
+      )}
+    </div>
   );
 }
 
